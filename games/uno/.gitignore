@@ -1,7 +1,8 @@
 .DS_Store
 node_modules
-**/dist
-build
+# Default build outputs ignored except pre-bundled build/ and client/dist/
+!/build/
+!/client/dist/
 
 scripts
 

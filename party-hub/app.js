@@ -73,7 +73,7 @@ const partyState = {
             minPlayers: 2,
             maxPlayers: 12,
             desc: "Zwei Geheimdienstchefs geben geheime Ein-Wort-Hinweise. Welches Agenten-Team entschlüsselt zuerst alle eigenen Wörter?",
-            embedUrl: "http://localhost:5000/"
+            embedUrl: "http://localhost:5005/"
         },
         price_guess: {
             id: "price_guess",
@@ -882,18 +882,19 @@ function executeCountdownAndLaunch(game) {
 }
 
 function getGameUrl(game) {
+    const proto = window.location.protocol || "http:";
     const host = window.location.hostname || "localhost";
     const userName = partyState.currentUser ? partyState.currentUser.name : "Gast";
     if (game.id === "skribbol") {
-        return `http://${host}:8080/?username=${encodeURIComponent(userName)}`;
+        return `${proto}//${host}:8080/?username=${encodeURIComponent(userName)}`;
     } else if (game.id === "uno") {
-        return `http://${host}:8085/?lobby=${encodeURIComponent(ROOM_CODE)}&name=${encodeURIComponent(userName)}`;
+        return `${proto}//${host}:8085/?lobby=${encodeURIComponent(ROOM_CODE)}&name=${encodeURIComponent(userName)}`;
     } else if (game.id === "codenames") {
-        return `http://${host}:5000/g/${encodeURIComponent(ROOM_CODE)}?name=${encodeURIComponent(userName)}`;
+        return `${proto}//${host}:5005/g/${encodeURIComponent(ROOM_CODE)}?name=${encodeURIComponent(userName)}`;
     } else if (game.id === "monopoly") {
-        return `http://${host}:8090/?name=${encodeURIComponent(userName)}`;
+        return `${proto}//${host}:8090/?name=${encodeURIComponent(userName)}`;
     } else if (game.id === "price_guess") {
-        return `http://${host}:8088/`;
+        return `${proto}//${host}:8088/`;
     }
     return game.embedUrl;
 }

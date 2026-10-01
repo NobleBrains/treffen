@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 cd "$(dirname "$0")"
 
-echo "=== Stoppe PartyHub & alle Spiele ==="
+echo "=== Stoppe Treffen & alle Spiele ==="
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
     COMPOSE="docker compose"

@@ -29,6 +29,9 @@ __pycache__/
 dist/
 build/
 .next/
+!games/uno/build/
+!games/uno/client/dist/
+!games/guess-the-price/apps/client/.env
 
 # Docker volumes and persistent state
 gtp-postgres-data/

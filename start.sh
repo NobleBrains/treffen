@@ -24,18 +24,18 @@ if [ -n "$MY_DOMAIN" ] && [ "$MY_DOMAIN" != "localhost" ]; then
     echo "No-IP Domain erkannt: $MY_DOMAIN (Starte mit Caddy HTTPS Reverse-Proxy)"
     $COMPOSE -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
 else
-    echo "Starte im lokalen Modus (Port 3000, 8080, 8085, 5000, 8088)..."
+    echo "Starte im lokalen Modus (Port 3000, 8080, 8085, 5005, 8088)..."
     $COMPOSE up -d --build
 fi
 
 echo ""
 echo "=========================================================="
-echo "🎉 PartyHub läuft erfolgreich!"
+echo "🎉 Treffen läuft erfolgreich!"
 echo "=========================================================="
-echo "• PartyHub Portal:   http://localhost:3000"
+echo "• Treffen Portal:    http://localhost:3000"
 echo "• skribbl:           http://localhost:8080"
 echo "• UNO (SunoS):       http://localhost:8085"
-echo "• Codenames:         http://localhost:5000"
+echo "• Codenames:         http://localhost:5005"
 echo "• Guess The Price:   http://localhost:8088"
 if [ -n "$MY_DOMAIN" ] && [ "$MY_DOMAIN" != "localhost" ]; then
     echo "• Öffentliche URL:   https://$MY_DOMAIN"
