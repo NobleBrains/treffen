@@ -1,10 +1,10 @@
-# 🎉 Treffen – Der All-in-One Spieleabend
+# Treffen – Der werbefreie Spieleabend
 
 Komplettes, orchestriertes Paket für deinen Spieleabend-Server mit synchroner Party-Lobby, Live-Präsenz und 4 fertigen Spielen:
-- 🎨 **skribbl** (Go)
-- 🃏 **UNO** (Node.js)
-- 🕵️‍♂️ **Codenames** (Python)
-- 🏷️ **Guess The Price** (React / Express / PostgreSQL)
+-  **skribbl** (Go)
+-  **UNO** (Node.js)
+-  **Codenames** (Python)
+-  **Guess The Price** (React / Express / PostgreSQL)
 
 ---
 
