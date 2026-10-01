@@ -9,15 +9,15 @@
     'use strict';
 
     let currentMode = '2d'; // '2d' or '3d' (acts as 2.5D on mobile)
-    let rotX = 50;          // Pitch angle (degrees)
-    let rotZ = -12;         // Yaw angle (degrees)
+    let rotX = 32;          // Pitch angle (degrees) - gentle readable angle
+    let rotZ = -6;          // Yaw angle (degrees)
     let zoomScale = 1.0;
 
     let isDragging = false;
     let startX = 0;
     let startY = 0;
-    let startRotX = 50;
-    let startRotZ = -12;
+    let startRotX = 32;
+    let startRotZ = -6;
     let hasDragged = false;
 
     function isMobile() {
@@ -45,18 +45,25 @@
     window.syncControlPlacement = syncControlPlacement;
 
     function getBaseScale() {
-        if (!isMobile()) {
-            return zoomScale;
+        if (isMobile()) {
+            // Available width (with 12px margin)
+            const availableW = window.innerWidth - 12;
+            // Available height: top ~48% of screen
+            const availableH = window.innerHeight * 0.48;
+            const scaleW = availableW / 886;
+            const scaleH = availableH / 886;
+            // Fit within both width and height so no rows are clipped
+            const autoScale = Math.min(scaleW, scaleH);
+            return Math.min(0.65, Math.max(0.35, autoScale)) * zoomScale;
         }
-        // Available width (with 12px margin)
-        const availableW = window.innerWidth - 12;
-        // Available height: top ~48% of screen
-        const availableH = window.innerHeight * 0.48;
-        const scaleW = availableW / 886;
-        const scaleH = availableH / 886;
-        // Fit within both width and height so no rows are clipped
-        const autoScale = Math.min(scaleW, scaleH);
-        return Math.min(0.65, Math.max(0.35, autoScale)) * zoomScale;
+
+        // Desktop: auto-fit to available viewport height and width, accounting for bottom cockpit
+        const cockpitH = 150; // Cockpit height + bottom margin
+        const topMargin = 25;
+        const availableH = Math.max(350, window.innerHeight - cockpitH - topMargin);
+        const availableW = Math.max(350, window.innerWidth - 40);
+        const fitScale = Math.min(availableW / 886, availableH / 886);
+        return Math.min(1.0, Math.max(0.35, fitScale)) * zoomScale;
     }
 
     function applyTransform(withTransition = true) {
@@ -107,8 +114,8 @@
                 container.classList.add('mode-3d');
             }
             if (stage) stage.classList.add('stage-3d');
-            rotX = isMobile() ? 36 : 50;
-            rotZ = -12;
+            rotX = isMobile() ? 32 : 32;
+            rotZ = -6;
         } else {
             if (btn2d) btn2d.classList.add('active');
             if (btn3d) btn3d.classList.remove('active');
@@ -135,8 +142,8 @@
     };
 
     window.resetBoard3D = function() {
-        rotX = isMobile() ? 36 : 50;
-        rotZ = -12;
+        rotX = isMobile() ? 32 : 32;
+        rotZ = -6;
         zoomScale = 1.0;
         applyTransform(true);
     };
@@ -269,7 +276,7 @@
 
         let savedMode = '2d';
         try {
-            savedMode = localStorage.getItem('amogolie_view_mode') || (isMobile() ? '2d' : '3d');
+            savedMode = localStorage.getItem('amogolie_view_mode') || '2d';
         } catch(e) {}
 
         window.setBoardView(savedMode);

@@ -578,7 +578,7 @@ td {
 	width: 100%;
 	justify-content: center;
 	align-items: center;
-	padding: 10px 0 40px 0;
+	padding: 10px 0 150px 0;
 	box-sizing: border-box;
 	overflow: visible;
 }
@@ -648,22 +648,33 @@ td {
 
 #board {
 	display: none;
-	border: 3px solid #0f172a;
-	border-spacing: 2px;
-	border-collapse: separate;
+	width: 886px;
+	height: 886px;
+	table-layout: fixed;
+	border-collapse: collapse;
+	border-spacing: 0;
 	margin: 0;
+	padding: 0;
 	background-color: #0f172a;
+	border: 2px solid #0f172a;
+	box-sizing: border-box;
 	border-radius: 6px;
 }
 
 #jail {
-	border: 1px solid black;
-	height: 65px;
-	width: 65px;
-	position: relative;
-	top: 73px;
-	left: -73px;
-	z-index: 2;
+	box-sizing: border-box;
+	height: 68px;
+	width: 68px;
+	position: absolute;
+	left: 51px;
+	bottom: 51px;
+	z-index: 5;
+	pointer-events: none;
+	border: 2px solid transparent;
+}
+
+#jail span {
+	display: none;
 }
 
 #control {
@@ -1164,28 +1175,51 @@ td {
 	background-color: #dbe6d7;
 	box-sizing: border-box;
 	overflow: hidden;
+	border: 1px solid #0f172a;
 }
 
 .board-center {
-	width: 651px;
-	height: 651px;
+	width: 648px;
 	border: none;
 	background-color: #dbe6d7;
+	padding: 0;
+	margin: 0;
 }
 
 .board-corner {
-	width: 118px;
-	height: 118px;
+	width: 119px;
+	height: 119px;
+	min-width: 119px;
+	max-width: 119px;
+	min-height: 119px;
+	max-height: 119px;
+	box-sizing: border-box;
+	padding: 0;
+	margin: 0;
 }
 
 .board-top, .board-bottom {
-	width: 71px;
-	height: 118px;
+	width: 72px;
+	height: 119px;
+	min-width: 72px;
+	max-width: 72px;
+	min-height: 119px;
+	max-height: 119px;
+	box-sizing: border-box;
+	padding: 0;
+	margin: 0;
 }
 
 .board-left, .board-right {
-	width: 118px;
-	height: 71px;
+	width: 119px;
+	height: 72px;
+	min-width: 119px;
+	max-width: 119px;
+	min-height: 72px;
+	max-height: 72px;
+	box-sizing: border-box;
+	padding: 0;
+	margin: 0;
 }
 
 .enlarge {
@@ -1319,6 +1353,12 @@ td {
 	box-sizing: border-box;
 	overflow: hidden;
 	user-select: none;
+}
+
+.cell-name {
+	word-wrap: break-word;
+	overflow-wrap: break-word;
+	hyphens: auto;
 }
 
 /* Bottom Cells (e.g. Badstraße) */
@@ -1667,8 +1707,8 @@ td {
 	position: absolute;
 	top: 119px;
 	left: 119px;
-	width: 651px;
-	height: 651px;
+	width: 648px;
+	height: 648px;
 	pointer-events: none;
 	z-index: 1;
 	overflow: hidden;

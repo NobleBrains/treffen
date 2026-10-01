@@ -79,7 +79,7 @@ window.BOARD_EDITIONS = {
 		currency: "DM",
 		taxCityName: "Einkommensteuer",
 		taxLuxuryName: "Zusatzsteuer",
-		centerLogo: "AMOGOLIE",
+		centerLogo: "MONOPOLY",
 		centerSub: "Das klassische Spiel um die großen Vermögen",
 		squares: [
 			// 0
