@@ -3450,4 +3450,26 @@ td {
 	display: none !important;
 }
 
+#board.use-board-image .board-corner {
+	width: calc(271 / 2048 * 100%) !important;
+	height: calc(271 / 2048 * 100%) !important;
+}
+
+#board.use-board-image .board-top,
+#board.use-board-image .board-bottom {
+	width: calc(164 / 2048 * 100%) !important;
+	height: calc(271 / 2048 * 100%) !important;
+}
+
+#board.use-board-image .board-left,
+#board.use-board-image .board-right {
+	width: calc(271 / 2048 * 100%) !important;
+	height: calc(164 / 2048 * 100%) !important;
+}
+
+#board.use-board-image .board-center {
+	width: calc(1500 / 2048 * 100%) !important;
+	height: calc(1500 / 2048 * 100%) !important;
+}
+
 
