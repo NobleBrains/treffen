@@ -1,0 +1,20 @@
+
+#start-game-form #start_game {
+    width: 100%;
+}
+
+#game-name {
+    float: left;
+}
+
+#start-game-form {
+    max-width: 300px;
+}
+
+.center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 40vh;
+    flex-direction: column;
+ }

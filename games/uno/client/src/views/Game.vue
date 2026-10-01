@@ -1,0 +1,1605 @@
+<script>
+import Card from "@/components/Card.vue";
+import UMenuModal from "@/components/Menu/UMenuModal.vue";
+import UGameOtherCards from "@/components/Game/UGameOtherCards.vue";
+import UGameStack from "@/components/Game/UGameStack.vue";
+import UGameColorPicker from "@/components/Game/UGameColorPicker.vue";
+import UMenuBtn from "@/components/Menu/UMenuBtn.vue";
+import USettingsMenu from "../components/USettingsMenu.vue";
+import Chat from "../components/Chat.vue";
+import UGamePickHand from "../components/Game/UGamePickHand.vue";
+
+let interval;
+
+export default {
+  name: "Game",
+  components: {
+    Card,
+    UMenuModal,
+    UGameOtherCards,
+    UGameStack,
+    UGameColorPicker,
+    UMenuBtn,
+    USettingsMenu,
+    Chat,
+    UGamePickHand,
+  },
+  data() {
+    return {
+      copied: false,
+      topCardTransform: null,
+      pickColor: false,
+      wildcardColor: null,
+      wildcardIndex: -1,
+      drawing: false,
+      hasCalledUnoClient: false,
+      canDrawClient: true,
+      canPlayClient: true,
+      showSettings: false,
+      turnTimer: null,
+      turnTimerInterval: null,
+      forcePlayOfDrawnCard: false,
+      showKeepCard: false,
+      showBluff: false,
+      showPickHand: false,
+      swapHandAnim: false,
+      swap: {
+        bottomRight: false,
+        right: false,
+        topRight: false,
+        top: false,
+        topLeft: false,
+        left: false,
+        bottomLeft: false,
+        you: false,
+      },
+      isPlayAgain: false,
+      playerCardTimes: [],
+      secondsElapsed: 0,
+    };
+  },
+  computed: {
+    time() {
+      return new Date(this.secondsElapsed * 1000).toISOString().substring(11, 19)
+    },
+    room() {
+      return this.$store.state.room;
+    },
+    hideTopCard() {
+      let hide = false;
+      const animateCards = this.$store.state.animateCards;
+
+      const playerCardIndex = animateCards.findIndex(
+        (c) => !c.draw && c.player
+      );
+      if (playerCardIndex !== -1) {
+        const card = animateCards[playerCardIndex];
+        if (!card.isTransitionComplete && card.steps === 1) {
+          hide = true;
+        }
+      } else if (
+        animateCards.findIndex((c) => c.steps !== 0 && !c.draw && c.other) !==
+        -1
+      ) {
+        hide = true;
+      }
+
+      return hide;
+    },
+    pile() {
+      let pile;
+      const limit = this.$store.state.isMobile ? 5 : 12;
+
+      if (this.room.pile.length > limit) {
+        pile = this.room.pile.slice(this.room.pile.length - limit);
+      } else {
+        pile = this.room.pile;
+      }
+
+      return this.hideTopCard ? pile.slice(0, pile.length - 1) : pile;
+    },
+    playableCardCount() {
+      if (!this.room.you.cards) return null;
+
+      const count = this.room.you.cards.reduce(
+        (total, c) => total + c.playable,
+        0
+      );
+
+      return count;
+    },
+    isTurn() {
+      return this.room.turn === this.room.you.id || this.room.you.canJumpIn;
+    },
+    // currentPlayer() {
+    //   for (const p of ["you", "left", "right", "top"]) {
+    //     if (this.room[p] && this.room.turn === this.room[p].id)
+    //       return this.room[p];
+    //   }
+    // },
+    // isPlayerDrawing() {
+    //   let drawing = false;
+    //   const animateCards = this.$store.state.animateCards;
+
+    //   const playerCardIndex = animateCards.findIndex((c) => c.draw && c.player);
+    //   if (playerCardIndex !== -1) {
+    //     const card = animateCards[playerCardIndex];
+    //     if (!card.isTransitionComplete && card.steps !== 0) {
+    //       drawing = true;
+    //     }
+    //   }
+
+    //   return drawing;
+    // },
+    playerCards() {
+      return this.room.you.cards;
+    },
+    animateCards() {
+      return this.$store.state.animateCards;
+    },
+    showUnoBtn() {
+      if (
+        this.room.you &&
+        this.room.you.cards &&
+        this.room.you.cards.length === 2 &&
+        this.isTurn &&
+        !this.room.you.calledUno &&
+        !this.hasCalledUnoClient &&
+        this.playableCardCount !== 0
+      ) {
+        return true;
+      }
+      if (
+        this.room.you &&
+        this.room.you.count === 1 &&
+        !this.room.you.calledUno &&
+        !this.hasCalledUnoClient
+      ) {
+        return true;
+      }
+      const positions = [
+        "bottomRight",
+        "right",
+        "topRight",
+        "top",
+        "topLeft",
+        "left",
+        "bottomLeft",
+      ];
+      for (const pos of positions) {
+        if (this.room[pos] && this.room[pos].count === 1) {
+          return true;
+        }
+      }
+      return false;
+    },
+    centerText() {
+      if (this.room.stack > 0) return `+${this.room.stack}`;
+      if (this.room.you && (this.room.you.canJumpIn || this.room.awaitingJumpIn)) {
+        return "Jump In";
+      }
+      return "";
+    },
+  },
+  watch: {
+    playableCardCount(count, oldCount) {
+      if (
+        oldCount === 0 &&
+        count === 1 &&
+        this.forcePlayOfDrawnCard &&
+        this.turnTimer === null
+      ) {
+        this.forcePlayOfDrawnCard = false;
+        this.forcePlay();
+      }
+    },
+    isTurn(val) {
+      if (val) {
+        this.startPlayersTurn();
+      } else {
+        this.canDrawClient = false;
+        this.canPlayClient = false;
+
+        this.turnTimer = null;
+        clearInterval(this.turnTimerInterval);
+      }
+    },
+    playerCards(cards, oldCards) {
+      if (!cards) return;
+
+      if (cards.length !== oldCards.length) {
+        this.playerCardTimes = [];
+
+        for (let i = 0; i < cards.length; i++) {
+          this.playerCardTimes.push(
+            performance ? performance.now() : Date.now()
+          );
+        }
+      }
+
+      // player draw card animation
+      if (cards.length > oldCards.length) {
+        const card = cards[this.room.you.lastDrawnCard];
+
+        window.requestAnimationFrame(() => {
+          const cardElement = document.querySelector(
+            `.cards.you :nth-of-type(${this.room.you.lastDrawnCard + 1})`
+          );
+
+          if (cardElement) {
+            cardElement.classList.add("hidden");
+
+            const startBox = document
+              .getElementById("stack-top-card")
+              .getBoundingClientRect();
+            const destBox = cardElement.getBoundingClientRect();
+
+            this.$store.commit("ADD_ANIMATE_CARD", {
+              ...card,
+              steps: 1,
+              draw: true,
+              player: true,
+              isTransitionComplete: false,
+              drawnIndex: this.room.you.lastDrawnCard,
+              start: {
+                x: startBox.x,
+                y: startBox.y,
+              },
+              dest: {
+                x: destBox.x,
+                y: destBox.y,
+              },
+              transform: `rotate(-30deg) rotateY(20deg) rotateX(20deg) scale(${
+                this.room.you.canPlay ? 0.8 : 0.6
+              })`,
+            });
+          }
+        });
+      }
+    },
+    wildcardColor(color) {
+      if (this.pickColor && color !== null) {
+        this.$store.state.socket.emit("play-card", this.wildcardIndex, color);
+      }
+
+      this.pickColor = false;
+      this.wildcardColor = null;
+      this.wildcardIndex = -1;
+    },
+    room(room, oldRoom) {
+      if (room.id === "") return this.$router.push({ name: "Home" });
+
+      if (this.isTurn && room.you.canJumpIn && !this.canPlayClient)
+        this.startPlayersTurn();
+
+      // console.log(
+      //   this.isTurn,
+      //   room.you.canJumpIn,
+      //   this.canPlayClient,
+      //   this.isTurn && room.you.canJumpIn && !this.canPlayClient
+      // );
+
+      if (room.you.count === 2 && this.hasCalledUnoClient)
+        this.hasCalledUnoClient = false;
+
+      // update check for drawing cards client side
+      if (this.drawing) this.drawing = room.you.drawing;
+
+      // remove all animated cards after turn change
+      if (room.turn !== oldRoom.turn) {
+        if (oldRoom.turn === room.you.id) {
+          setTimeout(() => {
+            this.$store.state.animateCards.forEach((c, i) => {
+              this.$store.commit("REMOVE_ANIMATE_CARD", i);
+            });
+          }, 1000);
+        } else {
+          this.$store.state.animateCards.forEach((c, i) => {
+            this.$store.commit("REMOVE_ANIMATE_CARD", i);
+          });
+        }
+      }
+
+      // player playing card animation
+      const index = this.$store.state.animateCards.findIndex((c) => c.player);
+      if (index !== -1 && oldRoom.pile.length !== room.pile.length) {
+        const card = this.$store.state.animateCards[index];
+        card.steps--;
+
+        if (card.steps === 0) {
+          this.$store.commit("REMOVE_ANIMATE_CARD", index);
+        }
+      }
+
+      // other players playing card animations
+      const others = ["bottomRight", "right", "topRight", "top", "topLeft", "left", "bottomLeft"];
+      for (let i = 0; i < others.length; i++) {
+        const other = others[i];
+        if (!room[other]) continue;
+
+        const card = room.pile[room.pile.length - 1];
+
+        // play card animation
+        if (room[other]?.count < oldRoom[other]?.count) {
+          this.animateOtherPlayCard(other, card, true);
+        } else if (room[other]?.count > oldRoom[other]?.count) {
+          this.animateOtherPlayCard(other, card, false);
+        }
+      }
+
+      // call uno animation
+      const players = ["you", ...others];
+      for (let i = 0; i < players.length; i++) {
+        const player = players[i];
+
+        if (!room[player]) continue;
+
+        if (room[player].calledUno && !oldRoom[player].calledUno) {
+          this.playCallUnoAnimation(player);
+        }
+      }
+
+      // handle wildcard animation
+      if (room.wildcard && room.turn !== room.you.id) {
+        let other = "";
+        if (room.bottomRight && room.bottomRight.id === room.turn) other = "bottomRight";
+        else if (room.right && room.right.id === room.turn) other = "right";
+        else if (room.topRight && room.topRight.id === room.turn) other = "topRight";
+        else if (room.top && room.top.id === room.turn) other = "top";
+        else if (room.topLeft && room.topLeft.id === room.turn) other = "topLeft";
+        else if (room.left && room.left.id === room.turn) other = "left";
+        else other = "bottomLeft";
+
+        this.animateOtherPlayCard(other, room.wildcard, true);
+      }
+
+      // if (room.winner && window.innerHeight >= 650) {
+      //   setTimeout(() => {
+      //     window.GameAdsRenew("gameadsbanner");
+      //   }, 600);
+      // }
+    },
+  },
+  methods: {
+    gameadsClicked() {
+      window.gameadsClicked();
+    },
+    animateOtherPlayCard(player, card, toStack) {
+      let transform;
+      if (player === "right") {
+        transform =
+          "rotate(15deg) rotateY(50deg) rotateZ(5deg) rotateX(20deg) scale(0.75)";
+      } else if (player === "left") {
+        transform =
+          "rotate(-15deg) rotateY(-50deg) rotateZ(-5deg) rotateX(20deg) scale(0.75)";
+      } else {
+        transform = "scale(0.6)";
+      }
+
+      // Query either .cards.other or .player-station to get source card position
+      let cardElement = document.querySelector(
+        `.player-station.${player} .cards-fan .card:nth-of-type(${Math.ceil(
+          Math.random() * (this.room[player]?.count || 1)
+        )})`
+      );
+      if (!cardElement) {
+        cardElement = document.querySelector(
+          `.cards.other.${player} :nth-of-type(${Math.ceil(
+            Math.random() * (this.room[player]?.count || 1)
+          )})`
+        );
+      }
+      if (!cardElement) return;
+
+      if (this.swapHandAnim) return;
+
+      if (toStack) {
+        const box = cardElement.getBoundingClientRect();
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
+        this.$store.commit("ADD_ANIMATE_CARD", {
+          ...card,
+          steps: 1,
+          other: true,
+          isTransitionComplete: false,
+          start: {
+            x: box.x,
+            y: box.y,
+          },
+          dest: {
+            x: centerX - box.width / 2,
+            y: centerY - box.height / 2,
+          },
+          transform: transform,
+        });
+      } else {
+        const startBox = document
+          .getElementById("stack-top-card")
+          ?.getBoundingClientRect() || { x: window.innerWidth / 2, y: 150 };
+        const destBox = cardElement.getBoundingClientRect();
+
+        this.$store.commit("ADD_ANIMATE_CARD", {
+          ...card,
+          steps: 1,
+          draw: true,
+          other: true,
+          isTransitionComplete: false,
+          drawnIndex: this.room.you?.lastDrawnCard || 0,
+          start: {
+            x: startBox.x,
+            y: startBox.y,
+          },
+          dest: {
+            x: destBox.x,
+            y: destBox.y,
+          },
+          transform: "rotate(-30deg) rotateY(20deg) rotateX(20deg) scale(0.85)",
+          endTransform: transform,
+        });
+      }
+    },
+    pickWildcardColor(index) {
+      this.pickColor = true;
+      this.wildcardIndex = index;
+      this.$store.state.socket.emit(
+        "play-wildcard",
+        this.playerCards[index].type
+      );
+    },
+    pickHand(pos) {
+      if (!this.$store.state.room[pos]) return;
+
+      const id = this.$store.state.room[pos].id;
+      this.$store.state.socket.emit("pick-hand", id);
+      this.showPickHand = false;
+    },
+    forcePlay() {
+      if (!this.canPlayClient || !this.room.you.canPlay || this.turnTimer > 0)
+        return;
+
+      if (this.playableCardCount === 0) {
+        this.drawCard();
+        this.forcePlayOfDrawnCard = true;
+        return;
+      }
+
+      const cardIndex = this.playerCards.findIndex((c) => c.playable);
+      const card = this.playerCards[cardIndex];
+
+      this.showKeepCard = false;
+
+      // click card
+      setTimeout(
+        () =>
+          document
+            .querySelector(`.cards.you .card:nth-of-type(${cardIndex + 1})`)
+            .click(),
+        1000
+      );
+
+      // pick color if wildcard
+      if (card.type === 4 || card.type === 5) {
+        setTimeout(
+          () =>
+            document
+              .querySelector(
+                `.color-picker .container button:nth-of-type(${
+                  Math.floor(Math.random() * 4) + 1
+                })`
+              )
+              .click(),
+          2500
+        );
+      }
+    },
+    leaveRoom() {
+      this.$store.state.socket.emit("leave-room");
+      this.$store.commit("RESET_ROOM");
+
+      // this.$store.state.reloading = true;
+      if (this.$route.name !== "Home") this.$router.push({ name: "Home" });
+      // window.location.replace("/");
+    },
+    drawCard() {
+      if (
+        !this.room.started ||
+        !this.isTurn ||
+        this.drawing ||
+        !this.room.you.canDraw ||
+        !this.canDrawClient ||
+        this.room.you.mustStack
+      )
+        return;
+
+      this.$store.state.socket.emit("draw-card");
+      this.canDrawClient = false;
+      this.drawing = true;
+    },
+    playCard(index) {
+      if (!this.room.you.canPlay || !this.canPlayClient) return;
+
+      this.showKeepCard = false;
+
+      // stop player from drawing or playing while awaiting response from server
+      this.canDrawClient = false;
+      this.canPlayClient = false;
+
+      this.$store.state.socket.emit("play-card", index);
+    },
+    callUno() {
+      this.$store.state.socket.emit("call-uno");
+      this.hasCalledUnoClient = true;
+    },
+    playCallUnoAnimation(p) {
+      let transform = "scale(1) ";
+      let anchor = "";
+      switch (p) {
+        case "you":
+          anchor = "bottom";
+          transform += "translate(0, -35vh)";
+          break;
+        case "right" || "bottomRight":
+          anchor = "right";
+          transform += "translate(-35vh)";
+          break;
+        case "top" || "topRight" || "topLeft":
+          anchor = "top";
+          transform += "translate(0, 35vh)";
+          break;
+        case "left" || "bottomLeft":
+          anchor = "left";
+          transform += "translate(35vh)";
+          break;
+        default:
+          break;
+      }
+
+      this.$nextTick(() => {
+        this.$refs.unoAlert.style[anchor] = "4vh";
+        setTimeout(() => {
+          this.$refs.unoAlert.style.transform = transform;
+        }, 20);
+
+        setTimeout(() => {
+          this.$refs.unoAlert.style.transform = "";
+          setTimeout(() => (this.$refs.unoAlert.style[anchor] = ""), 650);
+        }, 900);
+      });
+    },
+    startPlayersTurn() {
+      this.canDrawClient = true;
+      this.canPlayClient = true;
+
+      // start turn timer if player is not being skipped
+      if (this.room.you.canPlay) {
+        if (this.turnTimerInterval) {
+          clearInterval(this.turnTimerInterval);
+        }
+
+        this.turnTimer =
+          this.room.you.canJumpIn || this.room.awaitingJumpIn ? 2 : 20;
+        this.turnTimerInterval = setInterval(() => {
+          if (this.drawing) return;
+
+          this.turnTimer--;
+
+          if (this.turnTimer === 0) {
+            this.turnTimer = null;
+            clearInterval(this.turnTimerInterval);
+
+            if (this.room.you.canJumpIn || this.room.awaitingJumpIn) return;
+            this.forcePlay();
+          }
+        }, 1000);
+      }
+    },
+    choicePlayCard() {
+      setTimeout(() => {
+        const card = document.querySelector(
+          `.cards.you .card:nth-of-type(${
+            this.playerCards.findIndex((c) => c.playable) + 1
+          })`
+        );
+        if (card) card.click();
+      }, 600);
+
+      this.showKeepCard = false;
+    },
+    getPositionFromId(id) {
+      if (this.room.bottomRight && this.room.bottomRight.id === id) {
+        return "bottomRight";
+      } else if (this.room.right && this.room.right.id === id) {
+        return "right";
+      } else if (this.room.topRight && this.room.topRight.id === id) {
+        return "topRight";
+      } else if (this.room.top && this.room.top.id === id) {
+        return "top";
+      } else if (this.room.topLeft && this.room.topLeft.id === id) {
+        return "topLeft";
+      } else if (this.room.left && this.room.left.id === id) {
+        return "left";
+      } else if (this.room.bottomLeft && this.room.bottomLeft.id === id) {
+        return "bottomLeft";
+      } else if (this.room.you && this.room.you.id === id) {
+        return "you";
+      }
+    },
+    playAgain() {
+      this.$store.commit("RESET_ROOM");
+      this.$store.state.socket.emit("play-again");
+      this.isPlayAgain = true;
+
+      this.$router.push({ name: "Home", params: { playAgain: true } });
+    },
+    copyJoinRoomLink() {
+      const link = `${window.location.origin}/?room=${encodeURI(this.room.id)}`;
+      window.navigator.clipboard
+        .writeText(link)
+        .then(() => {
+          this.copied = true
+          setTimeout(() => this.copied = false, 2000)
+        })
+        .catch((err) =>
+          alert(`Sorry we couldn't copy the link to the clipboard: ${err}`)
+        );
+    },
+    getAvatarColor(name) {
+      const colors = [
+        "#e11d48",
+        "#2563eb",
+        "#16a34a",
+        "#d97706",
+        "#9333ea",
+        "#0891b2",
+        "#ea580c",
+        "#4f46e5",
+      ];
+      let hash = 0;
+      for (let i = 0; i < (name || "").length; i++) {
+        hash = name.charCodeAt(i) + ((hash << 5) - hash);
+      }
+      return colors[Math.abs(hash) % colors.length];
+    },
+  },
+  mounted() {
+    if (!this.room.id) return;
+
+    window.onblur = () => (this.$store.state.animateCards = []);
+    window.onfocus = () => (this.$store.state.animateCards = []);
+
+    this.$store.state.socket.on("can-keep-card", () => {
+      this.showKeepCard = true;
+    });
+
+    this.$store.state.socket.on("can-bluff", () => {
+      this.showBluff = true;
+    });
+
+    this.$store.state.socket.on("can-pick-hand", () => {
+      this.showPickHand = true;
+    });
+
+    this.$store.state.socket.on("swap-hand-anim", (pId, sId) => {
+      this.swapHandAnim = true;
+
+      const p = this.getPositionFromId(pId);
+      const s = this.getPositionFromId(sId);
+
+      this.swap[p] = true;
+      this.swap[s] = true;
+
+      setTimeout(() => {
+        this.swapHandAnim = false;
+        this.swap[p] = false;
+        this.swap[s] = false;
+      }, 800);
+    });
+
+    if (this.isTurn) {
+      this.startPlayersTurn();
+    }
+
+    interval = setInterval(() => this.secondsElapsed += 1, 1000)
+  },
+  beforeDestroy() {
+    if (!this.isPlayAgain) this.leaveRoom();
+  },
+  destroyed() {
+    window.onblur = null;
+    window.onfocus = null;
+    clearInterval(interval)
+
+    this.$store.state.socket.off("can-keep-card");
+    this.$store.state.socket.off("can-bluff");
+    this.$store.state.socket.off("can-pick-hand");
+    this.$store.state.socket.off("swap-hand-anim");
+  },
+};
+</script>
+
+<template>
+  <div class="game">
+    <chat />
+
+    <u-menu-modal
+      v-if="room.winner"
+      :title="`Glückwunsch an ${room.winner.username} zum Sieg!`"
+      hideClose
+    >
+      <div style="display: flex; gap: 2rem">
+        <button class="btn rounded-btn success" @click="playAgain">
+          Nochmal spielen
+        </button>
+        <button class="btn rounded-btn" @click="leaveRoom">Zur Lobby</button>
+      </div>
+    </u-menu-modal>
+
+    <div class="top-right-settings">
+      <button class="settings-cog-btn" @click="showSettings = !showSettings" title="Einstellungen">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="white">
+          <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </svg>
+      </button>
+    </div>
+
+    <u-settings-menu
+      v-if="showSettings"
+      title="Settings"
+      @close="showSettings = false"
+      @exit="leaveRoom"
+    />
+
+    <u-game-color-picker
+      v-if="pickColor || (room.wildcard && !isTurn)"
+      :isTurn="isTurn"
+      @pick-color="wildcardColor = $event"
+    />
+
+    <u-game-pick-hand
+      v-if="showPickHand"
+      :isTurn="isTurn"
+      @pick-hand="pickHand"
+    />
+
+    <u-game-pick-hand
+      v-else-if="$store.state.room.bottomRight && $store.state.room.bottomRight.canPickHand"
+      :isTurn="false"
+      class="bottomRight"
+    />
+
+    <u-game-pick-hand
+      v-else-if="$store.state.room.right && $store.state.room.right.canPickHand"
+      :isTurn="false"
+      class="right"
+    />
+
+    <u-game-pick-hand
+      v-else-if="$store.state.room.topRight && $store.state.room.topRight.canPickHand"
+      :isTurn="false"
+      class="topRight"
+    />
+
+    <u-game-pick-hand
+      v-else-if="$store.state.room.top && $store.state.room.top.canPickHand"
+      :isTurn="false"
+      class="top"
+    />
+
+    <u-game-pick-hand
+      v-else-if="$store.state.room.topLeft && $store.state.room.topLeft.canPickHand"
+      :isTurn="false"
+      class="topLeft"
+    />
+
+    <u-game-pick-hand
+      v-else-if="$store.state.room.left && $store.state.room.left.canPickHand"
+      :isTurn="false"
+      class="left"
+    />
+
+    <u-game-pick-hand
+      v-else-if="$store.state.room.bottomLeft && $store.state.room.bottomLeft.canPickHand"
+      :isTurn="false"
+      class="bottomLeft"
+    />
+
+    <img ref="unoAlert" class="uno-alert" src="@/assets/logo.png" alt="" />
+
+    <div class="animation-cards">
+      <Card
+        v-for="(card, i) in $store.state.animateCards"
+        :key="`${i}-animate-${card.color}${card.number}${card.type}`"
+        :index="i"
+        :color="card.color"
+        :number="card.number"
+        :type="card.type"
+        :start="card.start"
+        :dest="card.dest"
+        :transform="card.transform"
+        :back="card.other && card.draw"
+        animate
+      />
+    </div>
+
+    <div class="pile">
+      <Card
+        v-for="(card, i) in pile"
+        :key="`${i}-pile-${card.color}${card.number}${card.type}`"
+        :color="card.color"
+        :number="card.number"
+        :type="card.type"
+        pile
+      />
+    </div>
+
+    <div class="direction-ring" :class="{ reverse: !room.directionReversed }">
+      <svg class="ring-svg" viewBox="0 0 200 200">
+        <defs>
+          <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fef08a" />
+            <stop offset="45%" stop-color="#facc15" />
+            <stop offset="100%" stop-color="#ea580c" />
+          </linearGradient>
+          <filter id="goldGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="3.5" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+        <path
+          d="M 35,100 A 65,65 0 0,1 165,100"
+          fill="none"
+          stroke="url(#goldGrad)"
+          stroke-width="11"
+          stroke-linecap="round"
+          filter="url(#goldGlow)"
+        />
+        <polygon points="172,92 188,114 158,114" fill="#facc15" filter="url(#goldGlow)" />
+        <path
+          d="M 165,100 A 65,65 0 0,1 35,100"
+          fill="none"
+          stroke="url(#goldGrad)"
+          stroke-width="11"
+          stroke-linecap="round"
+          filter="url(#goldGlow)"
+        />
+        <polygon points="28,108 12,86 42,86" fill="#facc15" filter="url(#goldGlow)" />
+      </svg>
+    </div>
+
+    <!-- Central Action / Status Text (matching screenshot 'Jump In' etc.) -->
+    <div class="center-action-label" v-if="centerText">
+      {{ centerText }}
+    </div>
+
+    <u-game-other-cards :room="room" :swap="swap" />
+
+    <div class="hud">
+      <div
+        class="turn-timer"
+        v-if="turnTimer !== null && room.you.canPlay && canPlayClient"
+      >
+        {{ turnTimer }}
+      </div>
+
+      <u-game-stack
+        :applyDrawClass="
+          playableCardCount === 0 &&
+          isTurn &&
+          canDrawClient &&
+          !drawing &&
+          room.you.canDraw
+        "
+        @draw-card="drawCard"
+      />
+
+      <div v-if="showKeepCard" class="keep-card-option">
+        <u-menu-btn
+          class="keep-btn"
+          @click="
+            $store.state.socket.emit('keep-card');
+            showKeepCard = false;
+          "
+          >Keep Card</u-menu-btn
+        >
+        <u-menu-btn class="play-btn" @click="choicePlayCard"
+          >Play Card</u-menu-btn
+        >
+      </div>
+
+      <div v-if="showBluff" class="keep-card-option">
+        <u-menu-btn
+          class="keep-btn"
+          @click="
+            $store.state.socket.emit('accept-plus4');
+            showBluff = false;
+          "
+          >Accept</u-menu-btn
+        >
+        <u-menu-btn
+          class="play-btn"
+          @click="$store.state.socket.emit('challenge-plus4')"
+          >Challenge</u-menu-btn
+        >
+      </div>
+
+      <div class="hand-container">
+        <div
+          v-if="room.you"
+          class="cards you"
+          :class="{
+            turn:
+              isTurn &&
+              room.you.canPlay &&
+              canPlayClient &&
+              !(room.awaitingJumpIn && !room.you.canJumpIn),
+            swap: swap.you,
+          }"
+          :style="{ '--count': `${room.you.count}` }"
+        >
+          <Card
+            v-for="(card, i) in playerCards"
+            :key="`${i}-you-${card.color}${card.number}${card.type}-${playerCardTimes[i]}`"
+            :index="i"
+            :color="card.color"
+            :number="card.number"
+            :type="card.type"
+            :playable="
+              card.playable &&
+              (isTurn || room.you.canJumpIn) &&
+              !drawing &&
+              room.you.canPlay
+            "
+            @card-played="playCard"
+            @pick-color="pickWildcardColor"
+          />
+        </div>
+
+        <!-- UNO Button positioned right next to player's hand cards -->
+        <div
+          v-if="showUnoBtn"
+          class="hand-uno-btn"
+          @click="callUno"
+          title="UNO!"
+        >
+          <img src="@/assets/logo.png" alt="UNO!" />
+        </div>
+      </div>
+
+      <!-- Local Player Tag in bottom-left -->
+      <div v-if="room.you" class="you-player-tag" :class="{ 'is-turn': isTurn }">
+        <div class="name-pill">
+          <span class="player-name">{{ room.you.username }}</span>
+        </div>
+        <div class="avatar-and-stats">
+          <div class="avatar-badge" :style="{ backgroundColor: getAvatarColor(room.you.username) }">
+            <div class="dots-grid">
+              <span v-for="d in 9" :key="d" class="dot"></span>
+            </div>
+          </div>
+          <div class="count-badge">
+            <span class="card-num">{{ room.you.count }}</span>
+            <span class="signal-bars">
+              <i class="bar b1"></i><i class="bar b2"></i><i class="bar b3"></i>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        v-if="room.isHost && !room.started && room.playerCount > 1"
+        class="start-btn rounded-btn"
+        @click="$store.state.socket.emit('start-game')"
+      >
+        Start Game
+      </button>
+    </div>
+  </div>
+</template>
+
+<style lang="scss">
+$mobile: 900px;
+$table-rotatex: 58deg;
+
+.gameads-container-win {
+  position: absolute;
+  bottom: 15%;
+  transform: translateY(50%);
+  z-index: 10000;
+}
+
+.game {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+
+  .ad-top-game {
+    left: 1vh;
+    right: unset;
+    transform: translateX(0);
+    z-index: 100;
+
+    &.win {
+      z-index: 10000;
+    }
+
+    @media screen and (max-width: 900px) {
+      display: none;
+    }
+  }
+
+  .ad-top-win {
+    top: 1vh;
+    z-index: 10000;
+
+    @media screen and (max-height: 810px) {
+      display: none;
+    }
+
+    @media screen and (max-width: 340px) {
+      display: none;
+    }
+  }
+
+  .ad-top2-win {
+    top: calc(8vh + 125px);
+    z-index: 10000;
+
+    @media screen and (max-height: 765px) {
+      display: none;
+    }
+  }
+
+  .ad-left-win {
+    z-index: 10000;
+
+    @media screen and (max-width: 1180px) {
+      display: none;
+    }
+  }
+
+  .ad-right-win {
+    z-index: 10000;
+
+    @media screen and (max-width: 1360px) {
+      display: none;
+    }
+  }
+}
+
+.animation-cards {
+  * {
+    position: absolute;
+  }
+}
+
+.settings-btn {
+  background-image: url("../assets/settings.jpg");
+  background-size: 100%;
+  height: clamp(60px, 8vw, 100px);
+  width: clamp(60px, 8vw, 100px);
+  border-radius: 15px;
+  cursor: pointer;
+  z-index: 10000;
+}
+
+.rounded-btn {
+  padding: 14px 22px;
+  background-color: #ff520d;
+  color: #fff;
+  border: 2px solid white;
+  border-radius: 6px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  transition: background-color 0.2s ease;
+  outline: none;
+
+  &:hover {
+    background-color: #ff8e0d;
+  }
+
+  &.success {
+    background-color: #0cb40c;
+
+    &:hover {
+      background-color: #1fc91f;
+    }
+  }
+}
+
+.uno-alert {
+  position: absolute;
+  z-index: 1002;
+  height: 35%;
+  transform: scale(0);
+  transition: transform 0.6s ease;
+}
+
+.hud {
+  margin-top: auto;
+  z-index: 400;
+
+  @media screen and (max-width: $mobile) {
+    .top-left-text {
+      font-size: 0.8rem !important;
+
+      .btn {
+        transform: scale(0.8);
+        transform-origin: top left;
+      }
+    }
+  }
+
+  .stack-count {
+    font-weight: 800;
+    color: white;
+    font-size: clamp(3rem, 8vw, 6rem);
+    -webkit-text-stroke: black clamp(2px, 0.5vw, 5px);
+    text-align: center;
+    z-index: 200;
+  }
+
+  .turn-timer {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    bottom: 40px;
+    right: 10px;
+    background: black;
+    width: clamp(5rem, 10vw, 12rem);
+    height: clamp(5rem, 10vw, 12rem);
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 700;
+    border-radius: 50%;
+    color: white;
+  }
+
+  .start-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+  }
+
+  .uno-btn {
+    position: absolute;
+    bottom: 90px;
+    right: 15vw;
+    width: 200px;
+    cursor: pointer;
+    animation: grow 2.5s ease-in-out infinite;
+    --start-transform: 1;
+    --end-transform: 1.15;
+
+    @keyframes grow {
+      from {
+        transform: scale(var(--start-transform));
+      }
+
+      50% {
+        transform: scale(var(--end-transform));
+      }
+
+      to {
+        transform: scale(--start-transform);
+      }
+    }
+
+    @media screen and (max-width: $mobile) {
+      transform: scale(0.7);
+      bottom: 20px;
+      --start-transform: 0.7;
+      --end-transform: 0.8;
+    }
+  }
+
+  .keep-card-option {
+    display: flex;
+    z-index: 50;
+    width: 40vw;
+    max-width: 50rem;
+    position: absolute;
+    bottom: 30vh;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+
+    @media screen and (max-width: $mobile) {
+      width: 60vw;
+
+      .keep-btn,
+      .play-btn {
+        font-size: 1.1rem;
+        padding: 0.8rem;
+      }
+    }
+
+    .keep-btn,
+    .play-btn {
+      margin: 1rem;
+    }
+
+    .play-btn {
+      background-color: rgb(41, 173, 15);
+
+      &:hover {
+        background-color: rgb(56, 138, 39);
+      }
+    }
+  }
+}
+
+// --- Top Right Settings Cog ---
+.top-right-settings {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  z-index: 1000;
+
+  .settings-cog-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1.5px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.85);
+      border-color: rgba(255, 255, 255, 0.6);
+      transform: rotate(30deg) scale(1.05);
+    }
+  }
+}
+
+// --- Direction Ring (Golden glowing circular arrow) ---
+.direction-ring {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transform: rotateX($table-rotatex) scale(1.3);
+  animation: rotate-ring 7s linear infinite;
+  z-index: 10;
+
+  @media screen and (max-width: $mobile) {
+    transform: rotateX($table-rotatex) scale(0.75);
+  }
+
+  &.reverse {
+    animation-direction: reverse;
+  }
+
+  .ring-svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  @keyframes rotate-ring {
+    from {
+      transform: rotateX($table-rotatex) scale(1.3) rotate(0deg);
+    }
+    to {
+      transform: rotateX($table-rotatex) scale(1.3) rotate(360deg);
+    }
+  }
+}
+
+// --- Center Action Label (e.g. "Jump In", "+2") ---
+.center-action-label {
+  position: absolute;
+  top: calc(50% + 55px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 900;
+  color: #ffffff;
+  -webkit-text-stroke: 2.5px #000000;
+  text-shadow: 0 4px 14px rgba(0, 0, 0, 0.85);
+  letter-spacing: 0.5px;
+  z-index: 250;
+  pointer-events: none;
+  animation: pulse-action 1.2s infinite alternate ease-in-out;
+
+  @keyframes pulse-action {
+    from { transform: translateX(-50%) scale(1); }
+    to { transform: translateX(-50%) scale(1.08); }
+  }
+}
+
+// --- Hand Container and UNO Button next to Hand Cards ---
+.hand-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+  margin-top: auto;
+  margin-bottom: 25px;
+
+  .cards.you {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  .hand-uno-btn {
+    position: relative;
+    margin-left: 20px;
+    margin-bottom: 30px;
+    width: 95px;
+    height: 95px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #f43f5e 0%, #be123c 70%, #881337 100%);
+    border: 4px solid #facc15;
+    box-shadow: 0 0 25px rgba(244, 63, 94, 0.8), 0 0 40px rgba(250, 204, 21, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 500;
+    animation: uno-pop 0.9s infinite alternate ease-in-out;
+    transition: transform 0.15s ease;
+
+    @media screen and (max-width: $mobile) {
+      width: 65px;
+      height: 65px;
+      margin-left: 10px;
+      margin-bottom: 15px;
+    }
+
+    &:hover {
+      transform: scale(1.15);
+      box-shadow: 0 0 35px rgba(244, 63, 94, 1), 0 0 55px rgba(250, 204, 21, 0.9);
+    }
+
+    img {
+      width: 82%;
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    }
+
+    @keyframes uno-pop {
+      from {
+        transform: scale(1);
+      }
+      to {
+        transform: scale(1.1);
+      }
+    }
+  }
+}
+
+// --- Local Player Tag (Bottom-Left) ---
+.you-player-tag {
+  position: absolute;
+  left: 30px;
+  bottom: 30px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  z-index: 100;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+  transition: transform 0.2s ease;
+
+  @media screen and (max-width: $mobile) {
+    left: 10px;
+    bottom: 10px;
+    transform: scale(0.85);
+    transform-origin: bottom left;
+  }
+
+  .name-pill {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.4);
+    border-radius: 999px;
+    padding: 4px 14px;
+    margin-bottom: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+
+    .player-name {
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 0.95rem;
+      letter-spacing: -0.2px;
+      white-space: nowrap;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+    }
+  }
+
+  .avatar-and-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .avatar-badge {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+
+      .dots-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 3.5px;
+        padding: 4px;
+
+        .dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background-color: #ffffff;
+        }
+      }
+    }
+
+    .count-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1.5px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      padding: 4px 9px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+
+      .card-num {
+        font-size: 1.05rem;
+        font-weight: 900;
+        color: #ffffff;
+        line-height: 1;
+      }
+
+      .signal-bars {
+        display: inline-flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 13px;
+
+        .bar {
+          width: 3px;
+          background-color: #22c55e;
+          border-radius: 1px;
+
+          &.b1 { height: 5px; }
+          &.b2 { height: 9px; }
+          &.b3 { height: 13px; }
+        }
+      }
+    }
+  }
+
+  &.is-turn {
+    transform: scale(1.08);
+
+    .name-pill {
+      background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+      border-color: #fde047;
+      box-shadow: 0 0 16px rgba(251, 191, 36, 0.85);
+    }
+  }
+}
+
+.pile {
+  width: 300px;
+  height: 300px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transform: rotateX($table-rotatex);
+  position: absolute;
+
+  @media screen and (max-width: $mobile) {
+    transform: rotateX($table-rotatex);
+  }
+
+  .card {
+    position: absolute;
+    margin-left: 0 !important;
+  }
+}
+
+.you {
+  .card {
+    filter: brightness(0.7);
+  }
+}
+
+.info-container {
+  display: flex;
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  align-items: center;
+  z-index: 99;
+
+  .copy {
+    text-decoration: underline;
+    font-weight: bold;
+    color: #53a944;
+    outline: none;
+    transition: color 0.2s ease;
+
+    &:hover,
+    &:focus {
+      color: #50ff31;
+    }
+  }
+
+  .room-details {
+    font-size: clamp(1.1rem, 2.5vw, 1.5rem);
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.6);
+    padding: 4px 0;
+    margin-right: 8px;
+    text-align: right;
+  }
+
+  .room-code-id {
+    color: white;
+  }
+}
+
+.cards {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 50px;
+  margin-top: auto;
+
+  &.swap {
+    .card {
+      margin-left: -127px !important;
+
+      @media screen and (max-width: $mobile) {
+        margin-left: -63.5px !important;
+      }
+    }
+  }
+
+  &.you {
+    transition: transform 0.5s ease, filter 0.5s ease;
+    transform-origin: bottom center;
+    transform: scale(0.8);
+    filter: brightness(0.5);
+
+    &.turn {
+      transform: scale(1);
+      filter: brightness(1);
+    }
+
+    .card {
+      margin-left: max(calc(-4.5px * var(--count)), -90px);
+
+      &:first-of-type {
+        margin-left: 0 !important;
+      }
+
+      @media screen and (max-width: $mobile) {
+        margin-left: max(calc(-2.25px * var(--count)), -45px);
+      }
+    }
+
+    @media screen and (max-width: $mobile) {
+      margin-bottom: 30px;
+    }
+  }
+}
+</style>

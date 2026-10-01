@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # =========================================================================
+  # PartyHub Hauptseite (Lobby, Raum-Verwaltung, synchroner Start)
+  # =========================================================================
+  partyhub:
+    build:
+      context: ./party-hub
+      dockerfile: Dockerfile
+    container_name: partyhub
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - party-net
+
+  # =========================================================================
+  # Spiel 1: skribbl (Zeichnen & Raten in Go)
+  # =========================================================================
+  skribbl:
+    build:
+      context: ./games/skribbl
+      dockerfile: linux.Dockerfile
+    container_name: skribbl
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - party-net
+
+  # =========================================================================
+  # Spiel 2: UNO / SunoS (Karten-Klassiker in Node.js)
+  # =========================================================================
+  uno:
+    build:
+      context: ./games/uno
+      dockerfile: Dockerfile
+    container_name: uno
+    restart: unless-stopped
+    environment:
+      - PORT=8085
+    ports:
+      - "8085:8085"
+    networks:
+      - party-net
+
+  # =========================================================================
+  # Spiel 3: Codenames (Geheimdienst-Worträtsel in Python/Flask)
+  # =========================================================================
+  codenames:
+    build:
+      context: ./games/codenames
+      dockerfile: Dockerfile
+    container_name: codenames
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    networks:
+      - party-net
+
+  # =========================================================================
+  # Spiel 4: Guess The Price - PostgreSQL Datenbank
+  # =========================================================================
+  gtp-db:
+    image: postgres:15-alpine
+    container_name: gtp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: guess-the-price
+    volumes:
+      - gtp-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - party-net
+
+  # =========================================================================
+  # Spiel 4: Guess The Price - Backend (Express + Prisma + WebSockets)
+  # Automatische Migration & Seeding beim ersten Start
+  # =========================================================================
+  gtp-server:
+    build:
+      context: ./games/guess-the-price/apps/server
+      dockerfile: Dockerfile
+    container_name: gtp-server
+    restart: unless-stopped
+    environment:
+      PORT: 3005
+      DATABASE_URL: "postgresql://root:root@gtp-db:5432/guess-the-price?schema=public"
+      CORS_ORIGIN: "*"
+    ports:
+      - "3005:3005"
+    depends_on:
+      - gtp-db
+    networks:
+      - party-net
+
+  # =========================================================================
+  # Spiel 4: Guess The Price - Frontend (React + Vite + Tailwind)
+  # =========================================================================
+  gtp-client:
+    build:
+      context: ./games/guess-the-price/apps/client
+      dockerfile: Dockerfile
+    container_name: gtp-client
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    depends_on:
+      - gtp-server
+    networks:
+      - party-net
+
+  # =========================================================================
+  # Optional: Monopoly (Amogolie) - Bei Bedarf zuschaltbar
+  # =========================================================================
+  monopoly:
+    build:
+      context: ./games/monopoly
+      dockerfile: Dockerfile
+    container_name: monopoly
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    profiles:
+      - extra
+    networks:
+      - party-net
+
+networks:
+  party-net:
+    driver: bridge
+
+volumes:
+  gtp-postgres-data:

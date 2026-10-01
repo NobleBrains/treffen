@@ -1,0 +1,8 @@
+allowBuilds:
+  '@parcel/watcher': true
+  aws-sdk: true
+  bufferutil: true
+  core-js: true
+  ejs: true
+  utf-8-validate: true
+  yorkie: true

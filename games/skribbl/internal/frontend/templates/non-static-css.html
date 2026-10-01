@@ -1,0 +1,9 @@
+{{/* A little hack so we need don't to have CSS templates and embed those directly. */}}
+{{/* The reason being that we need to be able to define the RootPath here. */}}
+{{define "non-static-css-decl"}}
+<style>
+    :root {
+        --scribble-background: url('{{.RootPath}}/resources/{{.WithCacheBust "background.png"}}');
+    }
+</style>
+{{end}}

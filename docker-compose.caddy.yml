@@ -1,0 +1,31 @@
+version: '3.8'
+
+# =============================================================================
+# Caddy SSL Reverse Proxy Overlay
+# Verwendung:
+#   docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d
+# =============================================================================
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: partyhub-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - MY_DOMAIN=${MY_DOMAIN:-localhost}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - partyhub
+    networks:
+      - party-net
+
+volumes:
+  caddy-data:
+  caddy-config:

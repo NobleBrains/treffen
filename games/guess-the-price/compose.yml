@@ -1,0 +1,64 @@
+version: '3'
+services:
+  pg-database:
+    image: postgres:15.3
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_DB: guess-the-price
+      POSTGRES_PASSWORD: root
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+      - backend
+
+  backend:
+    build:
+      context: ./apps/server
+      dockerfile: Dockerfile
+    image: backend
+    environment:
+      PORT: 3000
+      API_KEY: 'RANDOMLY GENERATED API KEY TO PROTECT ADMIN ENDPOINTS'
+      DATABASE_URL: 'postgresql://root:root@pg-database:5432/guess-the-price?schema=public'
+      MP_SESSION_INACTIVE_SECONDS: 180
+      MP_SESSION_ROUND_DURATION_SECONDS: 30
+      CORS_ORIGIN: http://localhost:8080
+
+    ports:
+      - 3000:3000
+    networks:
+      - backend
+    depends_on:
+      - pg-database
+
+  # Creates database migration and executes seed procedure
+  # COMMENT IF SEED HAS BEEN EXECUTED
+  db_setup:
+    image: backend
+    depends_on:
+      - pg-database
+      - backend
+    restart: 'no'
+    command: ['sh', '-c', 'npx prisma migrate deploy && npm run seed']
+    environment:
+      DATABASE_URL: 'postgresql://root:root@pg-database:5432/guess-the-price?schema=public'
+    networks:
+      - backend
+  # COMMENT IF SEED HAS BEEN EXECUTED
+
+  frontend:
+    build:
+      context: ./apps/client
+      dockerfile: Dockerfile
+    image: frontend
+    # Frontend env variables must be defined in /apps/client/.env (you will need to rebuild the image to change them)
+    ports:
+      - 8080:8080
+    depends_on:
+      - backend
+
+networks:
+  backend:
+    driver: 'bridge'

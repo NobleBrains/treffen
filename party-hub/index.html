@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="cyber-arcade">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Treffen – Dein Spieleabend</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="themes.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Comic+Neue:wght@400;700&family=Orbitron:wght@600;800&family=Outfit:wght@400;600;700&family=Patrick+Hand&family=Plus+Jakarta+Sans:wght@600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Party Bar -->
+    <header class="party-header">
+        <div class="header-left">
+            <div class="logo">
+                <img src="assets/logo.jpg" alt="Treffen Mascot" class="logo-doodle-img">
+                <span class="logo-text">Treffen<span class="highlight">.</span></span>
+            </div>
+            <div class="room-pill">
+                <span class="room-label">Raum:</span>
+                <span class="room-code" id="roomCodeDisplay">SPIEL-ABEND</span>
+                <button class="icon-btn" id="copyLinkBtn" title="Link in Zwischenablage kopieren">
+                    📋
+                </button>
+                <button class="icon-btn" id="qrCodeBtn" title="QR-Code für Smartphones anzeigen">
+                    📱
+                </button>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <!-- Theme Switcher Dropdown with Live Previews -->
+            <div class="theme-picker-wrapper" id="themePickerWrapper">
+                <button class="theme-dropdown-btn" id="themeDropdownBtn" title="Design wechseln">
+                    <span id="currentThemeIcon">🕹️</span>
+                    <span id="currentThemeName">Cyber Arcade</span>
+                    <span class="chevron">▼</span>
+                </button>
+                <div class="theme-dropdown-menu" id="themeDropdownMenu">
+                    <div class="theme-menu-header">🎨 Design & Stil wählen</div>
+                    <div id="themeOptionsList">
+                        <!-- Dynamically populated via app.js -->
+                    </div>
+                </div>
+            </div>
+            <button class="action-btn vote-mode-btn" id="toggleVoteBtn">
+                🗳️ Abstimmung
+            </button>
+            <div class="user-badge" id="currentUserBadge" title="Profil bearbeiten (Klicken)">
+                <div class="avatar-small" id="userAvatar">🐶</div>
+                <div class="user-info">
+                    <span class="user-name" id="userNameDisplay">Lukas</span>
+                    <span class="user-role host" id="userRoleDisplay">👑 Party-Host</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Global Persistent Nav during active game -->
+    <div class="active-game-overlay" id="activeGameOverlay">
+        <div class="game-hud">
+            <button class="hud-btn back-to-hub" id="backToHubBtn">
+                🏠 Zurück zum Wohnzimmer
+            </button>
+            <div class="hud-center">
+                <span class="hud-game-icon" id="hudGameIcon">🎮</span>
+                <span class="hud-game-title" id="hudGameTitle">Party-Spiel</span>
+                <span class="hud-status-dot"></span>
+                <span class="hud-status">Live mit 5 Freunden</span>
+            </div>
+            <div class="hud-right">
+                <span class="hud-room">Code: <strong>SPIEL-ABEND</strong></span>
+            </div>
+        </div>
+        <div class="game-frame-container">
+            <iframe id="gameIframe" src="about:blank" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <!-- Main Content: The Living Room -->
+    <main class="living-room-container" id="mainContainer">
+        <!-- Party / Player Bar -->
+        <section class="couch-section">
+            <div class="section-header">
+                <h2>🎉 Party <span class="badge" id="playerCountBadge">1 Freund</span></h2>
+                <span class="couch-hint">Party ist synchronisiert</span>
+            </div>
+            <div class="player-roster" id="playerRoster">
+                <!-- Dynamically populated players -->
+            </div>
+        </section>
+
+        <!-- Active Vote Banner (Hidden by default) -->
+        <section class="vote-banner" id="voteBanner" style="display: none;">
+            <div class="vote-banner-content">
+                <div class="vote-icon">🗳️</div>
+                <div class="vote-text">
+                    <h3>Spiele-Abstimmung ist aktiv!</h3>
+                    <p>Wähle dein Lieblingsspiel für die nächste Runde. Jeder hat 1 Stimme.</p>
+                </div>
+                <button class="action-btn-sm" id="closeVoteBtn">Abstimmung beenden</button>
+            </div>
+        </section>
+
+        <!-- Game Catalog -->
+        <section class="catalog-section">
+            <div class="section-header">
+                <h2>🎮 Spiele</h2>
+            </div>
+
+            <div class="games-grid" id="gamesGrid">
+                <!-- Game Card 1: skribbl -->
+                <div class="game-card featured" data-game-id="skribbol" data-min="2" data-max="12">
+                    <div class="card-media">
+                        <img src="assets/cover_skribbol.jpg" alt="skribbl Doodle Cover" class="card-cover-img">
+                        <span class="card-badge live">Bereit</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title-row">
+                            <h3>skribbl</h3>
+                        </div>
+                        <div class="card-tags">
+                            <span class="tag">👥 2–12 Spieler</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <div class="vote-counter" id="vote-skribbol" style="display: none;">
+                            <span class="vote-count">0</span> Stimmen
+                        </div>
+                        <button class="play-btn" onclick="openGameModal('skribbol')">
+                            Spielen & Starten
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Game Card 2: UNO -->
+                <div class="game-card" data-game-id="uno" data-min="2" data-max="8">
+                    <div class="card-media">
+                        <img src="assets/cover_sunos.jpg" alt="UNO Doodle Cover" class="card-cover-img">
+                        <span class="card-badge live">Bereit</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title-row">
+                            <h3>UNO</h3>
+                        </div>
+                        <div class="card-tags">
+                            <span class="tag">👥 2–8 Spieler</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <div class="vote-counter" id="vote-uno" style="display: none;">
+                            <span class="vote-count">0</span> Stimmen
+                        </div>
+                        <button class="play-btn" onclick="openGameModal('uno')">
+                            Spielen & Starten
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Game Card 3: Codenames -->
+                <div class="game-card" data-game-id="codenames" data-min="2" data-max="12">
+                    <div class="card-media" style="background: linear-gradient(135deg, #1e293b, #334155); display: flex; align-items: center; justify-content: center; height: 160px; font-size: 4rem;">
+                        <span>🕵️‍♂️</span>
+                        <span class="card-badge live">Bereit</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title-row">
+                            <h3>Codenames</h3>
+                        </div>
+                        <div class="card-tags">
+                            <span class="tag">👥 2–12 Spieler</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <div class="vote-counter" id="vote-codenames" style="display: none;">
+                            <span class="vote-count">0</span> Stimmen
+                        </div>
+                        <button class="play-btn" onclick="openGameModal('codenames')">
+                            Spielen & Starten
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Game Card 4: Guess The Price -->
+                <div class="game-card" data-game-id="price_guess" data-min="1" data-max="12">
+                    <div class="card-media">
+                        <img src="assets/cover_price.jpg" alt="Guess The Price Cover" class="card-cover-img">
+                        <span class="card-badge live">Bereit</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title-row">
+                            <h3>Guess The Price</h3>
+                        </div>
+                        <div class="card-tags">
+                            <span class="tag">👥 1–12+ Spieler</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <div class="vote-counter" id="vote-price_guess" style="display: none;">
+                            <span class="vote-count">0</span> Stimmen
+                        </div>
+                        <button class="play-btn" onclick="openGameModal('price_guess')">
+                            Spielen & Starten
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Game Card 5: Roulette (Random Picker) -->
+                <div class="game-card roulette-card" data-game-id="random" data-category="quick">
+                    <div class="card-media random-bg">
+                        <div class="card-icon-big">🎰</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-title-row">
+                            <h3>Zufalls-Roulette</h3>
+                        </div>
+                        <div class="card-tags">
+                            <span class="tag">👥 2–12 Spieler</span>
+                        </div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="action-btn roulette-btn" onclick="spinRoulette()">
+                            🎲 Zufälliges Spiel wählen
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal for Game Launch / Config -->
+    <div class="modal-backdrop" id="gameModal" style="display: none;">
+        <div class="modal-card">
+            <button class="close-modal-btn" onclick="closeGameModal()">✕</button>
+            <div class="modal-header">
+                <span class="modal-game-icon" id="modalIcon">🎨</span>
+                <div>
+                    <h2 id="modalTitle">Skribbol</h2>
+                    <span class="modal-meta" id="modalMeta">👥 2–12 Spieler</span>
+                </div>
+            </div>
+
+            <div class="modal-content">
+                <!-- Ready Check Section -->
+                <div class="ready-check-box">
+                    <div class="ready-banner">
+                        <div class="ready-banner-info">
+                            <span class="ready-bell">🔔</span>
+                            <strong class="ready-title">Warten bis alle bereit sind</strong>
+                        </div>
+                        <button class="ready-toggle-btn ready" id="toggleReadyBtn" onclick="toggleMyReadyState()">
+                            <span>✅</span> <span>Ich bin bereit!</span>
+                        </button>
+                    </div>
+
+                    <div class="party-readiness-box">
+                        <div class="readiness-header">
+                            <span>Status der Freunde:</span>
+                            <strong class="green-text" id="readinessStatus">5 von 5 bereit</strong>
+                        </div>
+                        <div class="player-mini-avatars" id="modalMiniAvatars">
+                            <!-- Populated dynamically with checkmarks -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeGameModal()">Zurück</button>
+                <button class="btn-primary-launch" id="launchGameBtn" onclick="launchCurrentGame()">
+                    🚀 Spiel starten
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Synchronous Countdown Overlay -->
+    <div class="countdown-overlay" id="countdownOverlay" style="display: none;">
+        <div class="countdown-card">
+            <span class="countdown-icon" id="countdownIcon">🎨</span>
+            <h2 id="countdownTitle">Skribbol startet...</h2>
+            <div class="countdown-number" id="countdownNumber">3</div>
+            <p>Macht euch bereit! Alle Freunde treten synchron bei.</p>
+        </div>
+    </div>
+
+    <!-- QR Code / Share Modal -->
+    <div class="modal-backdrop" id="shareModal" style="display: none;">
+        <div class="modal-card share-card">
+            <button class="close-modal-btn" onclick="closeShareModal()">✕</button>
+            <h2>📱 Treffen beitreten</h2>
+            <p>Freunde können einfach diesen QR-Code mit dem Smartphone abscannen oder den Link aufrufen:</p>
+            <div class="qr-placeholder">
+                <div class="qr-box">
+                    <div class="qr-pattern"></div>
+                    <span class="qr-text">SPIEL-ABEND</span>
+                </div>
+            </div>
+            <div class="share-url-box">
+                <input type="text" id="shareUrlInput" value="http://localhost:3000/?room=SPIEL-ABEND" readonly>
+                <button class="action-btn-sm" onclick="copyShareUrl()">Kopieren</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Join / Welcome Modal (Mandatory on First Entry per Tab) -->
+    <div class="modal-backdrop" id="joinModal" style="display: none; z-index: 10000; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px);">
+        <div class="modal-card" style="max-width: 440px; text-align: center;">
+            <div style="font-size: 3.5rem; margin-bottom: 8px;">🎉🎮</div>
+            <h2 style="font-size: 1.85rem; margin-bottom: 6px;">Willkommen bei Treffen!</h2>
+            <p style="color: var(--ink-light); margin-bottom: 18px; font-size: 1.05rem;">
+                Wähle deinen Nickname und Avatar für den Spieleabend:
+            </p>
+
+            <form id="joinForm" onsubmit="handleJoinSubmit(event)" style="display: flex; flex-direction: column; gap: 16px; text-align: left;">
+                <div>
+                    <label style="font-weight: 700; display: block; margin-bottom: 6px; font-family: var(--font-heading); font-size: 1.15rem;">
+                        Dein Nickname:
+                    </label>
+                    <input type="text" id="joinNicknameInput" maxlength="16" placeholder="Nickname eingeben..." required style="width: 100%; padding: 12px 16px; border: var(--ink-border); border-radius: 12px; font-family: var(--font-body); font-size: 1.15rem; background: var(--bg-surface); color: var(--ink);">
+                </div>
+
+                <div>
+                    <label style="font-weight: 700; display: block; margin-bottom: 8px; font-family: var(--font-heading); font-size: 1.15rem;">
+                        Wähle deinen Avatar:
+                    </label>
+                    <div id="joinAvatarPicker" class="avatar-picker-grid" style="justify-content: center;">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <div style="margin-top: 8px;">
+                    <button type="submit" class="btn-primary-launch" style="width: 100%; font-size: 1.25rem; padding: 12px 20px; justify-content: center; box-shadow: var(--shadow-doodle);">
+                        🎉 Party beitreten
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Profile Edit Modal -->
+    <div class="modal-backdrop" id="profileModal" style="display: none;">
+        <div class="modal-card">
+            <button class="close-modal-btn" onclick="closeProfileModal()">✕</button>
+            <div class="modal-header">
+                <span class="modal-game-icon">✏️</span>
+                <div>
+                    <h2>Dein Spieler-Profil</h2>
+                    <span class="modal-meta">Passe deinen Namen und Avatar an</span>
+                </div>
+            </div>
+            <div class="modal-content" style="display: flex; flex-direction: column; gap: 18px;">
+                <div>
+                    <label style="font-weight: 700; display: block; margin-bottom: 6px;">Dein Name:</label>
+                    <input type="text" id="profileNameInput" maxlength="16" placeholder="Dein Name..." style="width: 100%; padding: 10px 14px; border: var(--ink-border); border-radius: 12px; font-family: var(--font-body); font-size: 1.1rem; background: var(--bg-surface); color: var(--ink);">
+                </div>
+                <div>
+                    <label style="font-weight: 700; display: block; margin-bottom: 8px;">Wähle deinen Avatar:</label>
+                    <div id="profileAvatarPicker" class="avatar-picker-grid">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeProfileModal()">Abbrechen</button>
+                <button class="btn-primary-launch" onclick="saveProfileModal()">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">Link kopiert!</div>
+
+    <script src="app.js"></script>
+</body>
+</html>

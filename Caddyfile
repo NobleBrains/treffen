@@ -1,0 +1,14 @@
+# =============================================================================
+# Caddyfile für No-IP Domain & vollautomatisches HTTPS / SSL (Let's Encrypt)
+# =============================================================================
+# Setze deine No-IP Domain in der Umgebungsvariable MY_DOMAIN (z. B. in .env)
+# Beispiel: MY_DOMAIN=partyabend.ddns.net
+# =============================================================================
+
+{$MY_DOMAIN:localhost} {
+    # Encode responses automatically (gzip, zstd)
+    encode zstd gzip
+
+    # PartyHub Hauptportal (Port 3000 intern Port 80)
+    reverse_proxy partyhub:80
+}

@@ -1,0 +1,17 @@
+FROM python:3.13-alpine
+LABEL authors="Schluggi"
+
+WORKDIR /app
+
+COPY codenames /app/codenames
+COPY tools /app/tools
+COPY requirements.txt /app/requirements.txt
+
+RUN pip install --no-cache-dir --upgrade pip gunicorn eventlet
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt \
+    && rm -f /app/requirements.txt
+
+RUN python tools/words_to_image.py
+
+EXPOSE 5000
+ENTRYPOINT ["python", "-m", "codenames"]

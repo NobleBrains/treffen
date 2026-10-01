@@ -1,0 +1,627 @@
+/* ==========================================================================
+   PARTYHUB THEME SYSTEM
+   Modular Theme Definitions:
+   1. doodle        - Playful Skribbl / Sketchbook (Default)
+   2. cyber-arcade  - Dark Cyberpunk / Neon Arcade Lounge
+   3. glassmorphism - Modern Frosted Glass / Clean Apple Dark
+   4. cozy-lounge   - Warm Wood, Brass & Amber Hearth
+   5. retro-arcade  - 90s Pop Art / Vibrant Retro Gaming
+   6. clean-light   - Minimalist Nordic Clean Light
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. DOODLE / SKETCHBOOK (Default Theme)
+   -------------------------------------------------------------------------- */
+:root, [data-theme="doodle"] {
+    --bg-page: #f4f6fa;
+    --bg-grid: #e2e8f0;
+    --bg-surface: #ffffff;
+    --bg-surface-elevated: #fafbff;
+    --bg-card-media: #edf2f7;
+    
+    --ink: #1e293b;
+    --ink-light: #475569;
+    --ink-border: 2.5px solid #1e293b;
+    
+    --shadow-doodle: 4px 4px 0px #1e293b;
+    --shadow-doodle-hover: 7px 7px 0px #1e293b;
+    --shadow-doodle-active: 1px 1px 0px #1e293b;
+    
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --primary-text: #ffffff;
+    
+    --accent-green: #22c55e;
+    --accent-yellow: #facc15;
+    --accent-red: #ef4444;
+    --accent-orange: #fb923c;
+    --accent-purple: #a855f7;
+
+    --font-heading: 'Patrick Hand', 'Comic Neue', cursive, sans-serif;
+    --font-body: 'Comic Neue', 'Plus Jakarta Sans', system-ui, sans-serif;
+
+    --radius-doodle: 16px 20px 18px 22px;
+    --radius-pill: 999px;
+    --card-backdrop: none;
+    --body-bg-pattern: 
+        linear-gradient(var(--bg-grid) 1.5px, transparent 1.5px),
+        linear-gradient(90deg, var(--bg-grid) 1.5px, transparent 1.5px);
+    --body-bg-size: 26px 26px;
+    --card-transform-hover: translate(-3px, -3px);
+}
+
+/* --------------------------------------------------------------------------
+   2. CYBER ARCADE / MIDNIGHT NEON
+   -------------------------------------------------------------------------- */
+[data-theme="cyber-arcade"] {
+    --bg-page: #080a12;
+    --bg-grid: rgba(0, 240, 255, 0.08);
+    --bg-surface: #0f1322;
+    --bg-surface-elevated: #161c30;
+    --bg-card-media: #0a0d18;
+    
+    --ink: #f1f5f9;
+    --ink-light: #94a3b8;
+    --ink-border: 1.5px solid rgba(0, 240, 255, 0.35);
+    
+    --shadow-doodle: 0 4px 20px rgba(0, 0, 0, 0.7), 0 0 12px rgba(0, 240, 255, 0.15);
+    --shadow-doodle-hover: 0 8px 30px rgba(0, 240, 255, 0.35), 0 0 20px rgba(255, 0, 127, 0.25);
+    --shadow-doodle-active: 0 2px 10px rgba(0, 240, 255, 0.2);
+    
+    --primary: #00f0ff;
+    --primary-hover: #00d2df;
+    --primary-text: #050814;
+    
+    --accent-green: #00ff9d;
+    --accent-yellow: #ffe600;
+    --accent-red: #ff0055;
+    --accent-orange: #ff7700;
+    --accent-purple: #b537f2;
+
+    --font-heading: 'Orbitron', 'Plus Jakarta Sans', sans-serif;
+    --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+    --radius-doodle: 14px;
+    --radius-pill: 8px;
+    --card-backdrop: none;
+    --body-bg-pattern: 
+        radial-gradient(ellipse at 50% 0%, rgba(181, 55, 242, 0.15) 0%, transparent 60%),
+        linear-gradient(var(--bg-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    --body-bg-size: 100% 100%, 36px 36px, 36px 36px;
+    --card-transform-hover: translateY(-4px);
+}
+
+[data-theme="cyber-arcade"] .game-card {
+    border: 1.5px solid rgba(0, 240, 255, 0.25);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="cyber-arcade"] .game-card:hover {
+    border-color: #00f0ff;
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.35);
+}
+
+[data-theme="cyber-arcade"] .play-btn {
+    background: linear-gradient(135deg, #00f0ff, #7928ca);
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    border: none;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+}
+
+[data-theme="cyber-arcade"] .play-btn:hover {
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.7);
+    transform: translateY(-2px);
+}
+
+[data-theme="cyber-arcade"] .player-card {
+    background: #111728;
+    border: 1.5px solid rgba(0, 240, 255, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    color: #f1f5f9;
+}
+
+[data-theme="cyber-arcade"] .player-card:hover {
+    border-color: #00f0ff;
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.35);
+}
+
+[data-theme="cyber-arcade"] .player-card.is-host {
+    background: rgba(255, 230, 0, 0.08);
+    border: 1.5px solid #ffe600;
+    box-shadow: 0 0 16px rgba(255, 230, 0, 0.25);
+}
+
+[data-theme="cyber-arcade"] .player-card-name {
+    color: #f1f5f9;
+}
+
+[data-theme="cyber-arcade"] .player-card-tag {
+    color: #38bdf8;
+    font-weight: 600;
+}
+
+[data-theme="cyber-arcade"] .player-card-avatar {
+    background: #090c16;
+    border-color: rgba(0, 240, 255, 0.5);
+}
+
+[data-theme="cyber-arcade"] .status-dot {
+    border-color: #080a12;
+    box-shadow: 0 0 8px #00ff9d;
+}
+
+[data-theme="cyber-arcade"] .modal-card {
+    background: #0e1220;
+    border: 1.5px solid rgba(0, 240, 255, 0.35);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 30px rgba(0, 240, 255, 0.15);
+    color: #f1f5f9;
+}
+
+[data-theme="cyber-arcade"] .modal-header h2 {
+    color: #f1f5f9;
+}
+
+[data-theme="cyber-arcade"] .modal-meta {
+    color: #38bdf8;
+}
+
+[data-theme="cyber-arcade"] .ready-banner {
+    background: #141b2e;
+    border: 1.5px solid rgba(0, 240, 255, 0.25);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="cyber-arcade"] .ready-title {
+    color: #f1f5f9;
+    font-size: 1.05rem;
+    font-family: var(--font-heading);
+    letter-spacing: 0.02em;
+}
+
+[data-theme="cyber-arcade"] .party-readiness-box {
+    background: #101524;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="cyber-arcade"] .readiness-header {
+    color: #f1f5f9;
+}
+
+[data-theme="cyber-arcade"] .green-text {
+    color: #00ff9d;
+    text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+}
+
+[data-theme="cyber-arcade"] .mini-player-name {
+    color: #f1f5f9;
+}
+
+[data-theme="cyber-arcade"] .mini-avatar {
+    background: #080a12;
+    border-color: rgba(0, 240, 255, 0.4);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="cyber-arcade"] .btn-secondary {
+    background: #161c30;
+    color: #cbd5e1;
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    box-shadow: none;
+}
+
+[data-theme="cyber-arcade"] .btn-secondary:hover {
+    background: #1f2742;
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="cyber-arcade"] .btn-primary-launch {
+    background: linear-gradient(135deg, #00ff9d, #00b4d8);
+    color: #050814;
+    font-weight: 800;
+    border: none;
+    box-shadow: 0 0 20px rgba(0, 255, 157, 0.45);
+}
+
+[data-theme="cyber-arcade"] .btn-primary-launch:hover {
+    box-shadow: 0 0 30px rgba(0, 255, 157, 0.7);
+    transform: translateY(-2px);
+}
+
+[data-theme="cyber-arcade"] .ready-toggle-btn.ready {
+    background: rgba(0, 255, 157, 0.15);
+    color: #00ff9d;
+    border: 1.5px solid #00ff9d;
+    box-shadow: 0 0 12px rgba(0, 255, 157, 0.35);
+}
+
+[data-theme="cyber-arcade"] .ready-toggle-btn.not-ready {
+    background: rgba(255, 230, 0, 0.15);
+    color: #ffe600;
+    border: 1.5px solid #ffe600;
+    box-shadow: 0 0 12px rgba(255, 230, 0, 0.3);
+}
+
+[data-theme="cyber-arcade"] .close-modal-btn {
+    background: #161c30;
+    color: #94a3b8;
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    box-shadow: none;
+}
+
+[data-theme="cyber-arcade"] .close-modal-btn:hover {
+    background: #ff0055;
+    color: #ffffff;
+    border-color: #ff0055;
+    box-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
+}
+
+/* --------------------------------------------------------------------------
+   3. GLASSMORPHISM / MODERN CLEAN (Apple Dark Glass Style)
+   -------------------------------------------------------------------------- */
+[data-theme="glassmorphism"] {
+    --bg-page: #0b0f19;
+    --bg-grid: rgba(255, 255, 255, 0.03);
+    --bg-surface: rgba(18, 24, 38, 0.7);
+    --bg-surface-elevated: rgba(30, 41, 59, 0.75);
+    --bg-card-media: rgba(15, 23, 42, 0.5);
+    
+    --ink: #f8fafc;
+    --ink-light: #94a3b8;
+    --ink-border: 1px solid rgba(255, 255, 255, 0.12);
+    
+    --shadow-doodle: 0 12px 35px -8px rgba(0, 0, 0, 0.5);
+    --shadow-doodle-hover: 0 20px 45px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.2);
+    --shadow-doodle-active: 0 6px 15px rgba(0, 0, 0, 0.4);
+    
+    --primary: #6366f1;
+    --primary-hover: #4f46e5;
+    --primary-text: #ffffff;
+    
+    --accent-green: #10b981;
+    --accent-yellow: #f59e0b;
+    --accent-red: #f43f5e;
+    --accent-orange: #f97316;
+    --accent-purple: #a855f7;
+
+    --font-heading: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-body: 'Outfit', 'Plus Jakarta Sans', system-ui, sans-serif;
+
+    --radius-doodle: 20px;
+    --radius-pill: 999px;
+    --card-backdrop: blur(20px);
+    --body-bg-pattern: 
+        radial-gradient(circle at 15% 20%, rgba(99, 102, 241, 0.18) 0%, transparent 45%),
+        radial-gradient(circle at 85% 80%, rgba(236, 72, 153, 0.15) 0%, transparent 45%);
+    --body-bg-size: 100% 100%, 100% 100%;
+    --card-transform-hover: translateY(-4px);
+}
+
+[data-theme="glassmorphism"] .game-card,
+[data-theme="glassmorphism"] .party-header,
+[data-theme="glassmorphism"] .modal-card,
+[data-theme="glassmorphism"] .room-pill,
+[data-theme="glassmorphism"] .party-stats-banner {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="glassmorphism"] .play-btn {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   4. COZY LOUNGE / WARM WOOD & AMBER
+   -------------------------------------------------------------------------- */
+[data-theme="cozy-lounge"] {
+    --bg-page: #171310;
+    --bg-grid: rgba(245, 158, 11, 0.05);
+    --bg-surface: #241c17;
+    --bg-surface-elevated: #2f251f;
+    --bg-card-media: #1c1511;
+    
+    --ink: #fef3c7;
+    --ink-light: #d4af37;
+    --ink-border: 1.5px solid rgba(217, 119, 6, 0.3);
+    
+    --shadow-doodle: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 15px rgba(245, 158, 11, 0.1);
+    --shadow-doodle-hover: 0 12px 32px rgba(0, 0, 0, 0.7), 0 0 22px rgba(245, 158, 11, 0.25);
+    --shadow-doodle-active: 0 4px 12px rgba(0, 0, 0, 0.5);
+    
+    --primary: #d97706;
+    --primary-hover: #b45309;
+    --primary-text: #ffffff;
+    
+    --accent-green: #34d399;
+    --accent-yellow: #fbbf24;
+    --accent-red: #f87171;
+    --accent-orange: #fb923c;
+    --accent-purple: #e879f9;
+
+    --font-heading: 'Cinzel', 'Patrick Hand', serif, sans-serif;
+    --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+    --radius-doodle: 16px;
+    --radius-pill: 999px;
+    --card-backdrop: none;
+    --body-bg-pattern: 
+        radial-gradient(circle at 50% 0%, rgba(217, 119, 6, 0.12) 0%, transparent 60%),
+        linear-gradient(var(--bg-grid) 1px, transparent 1px),
+        linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
+    --body-bg-size: 100% 100%, 30px 30px, 30px 30px;
+    --card-transform-hover: translateY(-4px);
+}
+
+[data-theme="cozy-lounge"] .party-header {
+    background: #1f1813;
+    border-bottom: 2px solid #b45309;
+}
+
+[data-theme="cozy-lounge"] .play-btn {
+    background: linear-gradient(135deg, #d97706, #92400e);
+    border: 1px solid #f59e0b;
+    color: #fef3c7;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   5. RETRO ARCADE / 90s POP ART
+   -------------------------------------------------------------------------- */
+[data-theme="retro-arcade"] {
+    --bg-page: #1e1b4b;
+    --bg-grid: rgba(250, 204, 21, 0.12);
+    --bg-surface: #2e266d;
+    --bg-surface-elevated: #3b3285;
+    --bg-card-media: #221c54;
+    
+    --ink: #ffffff;
+    --ink-light: #fde047;
+    --ink-border: 3px solid #facc15;
+    
+    --shadow-doodle: 5px 5px 0px #facc15;
+    --shadow-doodle-hover: 8px 8px 0px #38bdf8;
+    --shadow-doodle-active: 2px 2px 0px #facc15;
+    
+    --primary: #facc15;
+    --primary-hover: #eab308;
+    --primary-text: #1e1b4b;
+    
+    --accent-green: #4ade80;
+    --accent-yellow: #fef08a;
+    --accent-red: #fb7185;
+    --accent-orange: #fb923c;
+    --accent-purple: #c084fc;
+
+    --font-heading: 'Orbitron', 'Patrick Hand', sans-serif;
+    --font-body: 'Comic Neue', system-ui, sans-serif;
+
+    --radius-doodle: 8px;
+    --radius-pill: 6px;
+    --card-backdrop: none;
+    --body-bg-pattern: 
+        linear-gradient(var(--bg-grid) 2px, transparent 2px),
+        linear-gradient(90deg, var(--bg-grid) 2px, transparent 2px);
+    --body-bg-size: 32px 32px;
+    --card-transform-hover: translate(-4px, -4px);
+}
+
+[data-theme="retro-arcade"] .play-btn {
+    background: #facc15;
+    color: #1e1b4b;
+    border: 2px solid #ffffff;
+    font-weight: 800;
+    box-shadow: 4px 4px 0px #ffffff;
+}
+
+[data-theme="retro-arcade"] .play-btn:hover {
+    background: #38bdf8;
+    color: #ffffff;
+    box-shadow: 6px 6px 0px #facc15;
+}
+
+/* --------------------------------------------------------------------------
+   6. NORDIC CLEAN / MINIMALIST LIGHT
+   -------------------------------------------------------------------------- */
+[data-theme="clean-light"] {
+    --bg-page: #f8fafc;
+    --bg-grid: transparent;
+    --bg-surface: #ffffff;
+    --bg-surface-elevated: #ffffff;
+    --bg-card-media: #f1f5f9;
+    
+    --ink: #0f172a;
+    --ink-light: #64748b;
+    --ink-border: 1px solid #e2e8f0;
+    
+    --shadow-doodle: 0 4px 12px rgba(0, 0, 0, 0.05);
+    --shadow-doodle-hover: 0 12px 24px -4px rgba(0, 0, 0, 0.09);
+    --shadow-doodle-active: 0 2px 6px rgba(0, 0, 0, 0.04);
+    
+    --primary: #2563eb;
+    --primary-hover: #1d4ed8;
+    --primary-text: #ffffff;
+    
+    --accent-green: #10b981;
+    --accent-yellow: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-orange: #f97316;
+    --accent-purple: #8b5cf6;
+
+    --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+
+    --radius-doodle: 16px;
+    --radius-pill: 999px;
+    --card-backdrop: none;
+    --body-bg-pattern: none;
+    --body-bg-size: auto;
+    --card-transform-hover: translateY(-4px);
+}
+
+[data-theme="clean-light"] .play-btn {
+    background: #2563eb;
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+/* ==========================================================================
+   THEME PICKER UI STYLES (Dropdown Menu)
+   ========================================================================== */
+.theme-picker-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.theme-dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-surface);
+    color: var(--ink);
+    border: var(--ink-border);
+    border-radius: var(--radius-pill);
+    padding: 8px 16px;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-doodle);
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.theme-dropdown-btn:hover {
+    box-shadow: var(--shadow-doodle-hover);
+    transform: var(--card-transform-hover);
+}
+
+.theme-dropdown-btn:active {
+    box-shadow: var(--shadow-doodle-active);
+    transform: none;
+}
+
+.theme-dropdown-btn .chevron {
+    font-size: 0.75rem;
+    transition: transform 0.2s ease;
+}
+
+.theme-dropdown-btn.open .chevron {
+    transform: rotate(180deg);
+}
+
+.theme-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 290px;
+    background: var(--bg-surface);
+    border: var(--ink-border);
+    border-radius: 16px;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+    padding: 10px;
+    display: none;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 1000;
+    animation: themeMenuPop 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.theme-dropdown-menu.show {
+    display: flex;
+}
+
+@keyframes themeMenuPop {
+    from {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.theme-menu-header {
+    padding: 6px 10px;
+    font-family: var(--font-heading);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--ink-light);
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+    margin-bottom: 4px;
+}
+
+.theme-option-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 12px;
+    cursor: pointer;
+    background: transparent;
+    border: 1.5px solid transparent;
+    color: var(--ink);
+    transition: all 0.15s ease;
+}
+
+.theme-option-item:hover {
+    background: var(--bg-surface-elevated);
+    border-color: var(--primary);
+    transform: translateX(3px);
+}
+
+.theme-option-item.active {
+    background: var(--bg-surface-elevated);
+    border-color: var(--primary);
+    font-weight: 700;
+}
+
+.theme-option-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.theme-option-icon {
+    font-size: 1.3rem;
+}
+
+.theme-option-text {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.theme-option-name {
+    font-size: 0.95rem;
+    line-height: 1.2;
+}
+
+.theme-option-desc {
+    font-size: 0.75rem;
+    color: var(--ink-light);
+    line-height: 1.2;
+    margin-top: 2px;
+}
+
+.theme-swatches {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.theme-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+}

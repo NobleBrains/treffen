@@ -1,0 +1,38 @@
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Dependencies and caches
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+.cache/
+
+# Build outputs
+dist/
+build/
+.next/
+
+# Docker volumes and persistent state
+gtp-postgres-data/
+
+# Archives
+*.zip
+*.tar.gz
