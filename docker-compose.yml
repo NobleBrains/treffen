@@ -24,6 +24,8 @@ services:
       dockerfile: linux.Dockerfile
     container_name: skribbl
     restart: unless-stopped
+    environment:
+      - ROOT_PATH=/skribbl
     ports:
       - "8080:8080"
     networks:

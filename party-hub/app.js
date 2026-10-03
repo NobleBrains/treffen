@@ -882,19 +882,17 @@ function executeCountdownAndLaunch(game) {
 }
 
 function getGameUrl(game) {
-    const proto = window.location.protocol || "http:";
-    const host = window.location.hostname || "localhost";
     const userName = partyState.currentUser ? partyState.currentUser.name : "Gast";
     if (game.id === "skribbol") {
-        return `${proto}//${host}:8080/?username=${encodeURIComponent(userName)}`;
+        return `/skribbl/?username=${encodeURIComponent(userName)}`;
     } else if (game.id === "uno") {
-        return `${proto}//${host}:8085/?lobby=${encodeURIComponent(ROOM_CODE)}&name=${encodeURIComponent(userName)}`;
+        return `/uno/?lobby=${encodeURIComponent(ROOM_CODE)}&name=${encodeURIComponent(userName)}`;
     } else if (game.id === "codenames") {
-        return `${proto}//${host}:5005/g/${encodeURIComponent(ROOM_CODE)}?name=${encodeURIComponent(userName)}`;
+        return `/codenames/g/${encodeURIComponent(ROOM_CODE)}?name=${encodeURIComponent(userName)}`;
     } else if (game.id === "monopoly") {
-        return `${proto}//${host}:8090/?name=${encodeURIComponent(userName)}`;
+        return `/monopoly/?name=${encodeURIComponent(userName)}`;
     } else if (game.id === "price_guess") {
-        return `${proto}//${host}:8088/`;
+        return `/price-guess/`;
     }
     return game.embedUrl;
 }

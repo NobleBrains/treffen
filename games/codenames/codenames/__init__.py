@@ -4,8 +4,10 @@ from flask import Flask
 from flask_compress import Compress
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 Compress(app)
 
 DEFAULT_GAME_MODES = 'pictures,classic_de,classic_en,classic_en-undercover'

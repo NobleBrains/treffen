@@ -468,7 +468,7 @@ window.renderBoardHouses = function() {
 // Fetch dynamic custom editions from backend /api/editions
 window.fetchCustomEditions = function() {
 	if (typeof fetch !== "function") return;
-	fetch('/api/editions')
+	fetch('api/editions')
 		.then(function(res) { return res.json(); })
 		.then(function(customList) {
 			if (!Array.isArray(customList) || customList.length === 0) return;
