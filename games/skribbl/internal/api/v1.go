@@ -286,13 +286,13 @@ func SetGameplayCookies(
 		Name:     "usersession",
 		Value:    player.GetUserSession().String(),
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 	})
 	http.SetCookie(w, &http.Cookie{
 		Name:     "lobby-id",
 		Value:    lobby.LobbyID,
 		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 	})
 }
 
@@ -489,6 +489,8 @@ func GetUserSession(request *http.Request) (uuid.UUID, error) {
 	var userSession string
 	if sessionCookie, err := request.Cookie("usersession"); err == nil && sessionCookie.Value != "" {
 		userSession = sessionCookie.Value
+	} else if querySession := request.URL.Query().Get("usersession"); querySession != "" {
+		userSession = querySession
 	} else {
 		userSession = request.Header.Get("Usersession")
 	}
@@ -544,8 +546,12 @@ func GetPlayername(request *http.Request) string {
 func GetLobbyId(request *http.Request) string {
 	lobbyId := request.PathValue("lobby_id")
 	if lobbyId == "" {
-		cookie, _ := request.Cookie("lobby-id")
-		lobbyId = cookie.Value
+		lobbyId = request.URL.Query().Get("lobby_id")
+	}
+	if lobbyId == "" {
+		if cookie, err := request.Cookie("lobby-id"); err == nil && cookie != nil {
+			lobbyId = cookie.Value
+		}
 	}
 	return lobbyId
 }

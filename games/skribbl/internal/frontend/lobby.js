@@ -2189,7 +2189,10 @@ const connectToWebsocket = () => {
     socketIsConnecting = true;
 
     // rootPath is required to always contain a trailing slash OR be empty.
-    const socketPath = `${rootPath}/v1/lobby/ws`;
+    const lobbyId = window.SKRIBBL_LOBBY_ID || location.pathname.split("/").filter(Boolean).pop();
+    const userSession = window.SKRIBBL_USER_SESSION || "";
+    const sessionQuery = userSession ? `?usersession=${encodeURIComponent(userSession)}` : "";
+    const socketPath = `${rootPath}/v1/lobby/${lobbyId}/ws${sessionQuery}`;
     let host = location.hostname;
     if (location.port && location.port !== "") {
         host += ":" + location.port;

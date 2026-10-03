@@ -93,7 +93,7 @@ func (baseConfig *BasePageConfig) WithCacheBust(file string) template.HTMLAttr {
 
 func (handler *SSRHandler) cspMiddleware(handleFunc http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Security-Policy", "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:")
+		w.Header().Add("Content-Security-Policy", "base-uri 'self'; default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; img-src 'self' data:")
 		handleFunc.ServeHTTP(w, r)
 	}
 }

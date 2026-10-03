@@ -14,6 +14,7 @@ class Room {
         this.isVotingActive = false;
         this.activeModalGameId = null;
         this.activeGame = null;
+        this.gameSettings = {};
         this.hostId = null;
         this.disconnectTimers = new Map(); // playerId -> timer
     }
@@ -173,7 +174,8 @@ class Room {
             isVotingActive: this.isVotingActive,
             votes: this.votes,
             activeModalGameId: this.activeModalGameId,
-            activeGame: this.activeGame
+            activeGame: this.activeGame,
+            gameSettings: this.gameSettings
         });
     }
 
@@ -274,6 +276,22 @@ wss.on('connection', (ws, req) => {
                     }
                     room.activeModalGameId = null;
                     room.broadcast({ type: 'CLOSE_GAME_MODAL' }, ws);
+                    break;
+                }
+
+                case 'GAME_SETTINGS_UPDATE': {
+                    const senderId = room.socketToPlayerId.get(ws);
+                    if (senderId !== room.hostId) {
+                        console.warn(`[Room ${room.code}] Non-host (${senderId}) tried to update game settings.`);
+                        break;
+                    }
+                    if (!room.gameSettings) room.gameSettings = {};
+                    room.gameSettings[data.gameId] = data.settings;
+                    room.broadcast({
+                        type: 'GAME_SETTINGS_SYNC',
+                        gameId: data.gameId,
+                        settings: data.settings
+                    }, ws);
                     break;
                 }
 

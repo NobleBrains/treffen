@@ -199,7 +199,14 @@ const partyState = {
     },
     userVotedGame: null,
     activeModalGameId: null,
-    currentLobbyId: null
+    currentLobbyId: null,
+    skribblSettings: {
+        mode: "classic",
+        language: "german",
+        rounds: "3",
+        drawingTime: "80",
+        customWords: ""
+    }
 };
 
 let tempSelectedAvatar = null;
@@ -532,6 +539,94 @@ function updateHostPermissionsUI() {
             }
         }
     }
+
+    // 4. Update Skribbl settings UI state
+    if (partyState.activeModalGameId === "skribbol") {
+        applySkribblSettingsUI();
+    }
+}
+
+// ==========================================================================
+// Skribbl Settings Real-Time Sync (Leader Controls, Guests Read-Only)
+// ==========================================================================
+
+window.handleSkribblSettingChange = function() {
+    if (!partyState.isHost) {
+        applySkribblSettingsUI();
+        return;
+    }
+
+    const modeEl = document.getElementById("skribbl-opt-mode");
+    const langEl = document.getElementById("skribbl-opt-language");
+    const roundsEl = document.getElementById("skribbl-opt-rounds");
+    const timeEl = document.getElementById("skribbl-opt-drawing-time");
+    const customWordsEl = document.getElementById("skribbl-opt-custom-words");
+
+    partyState.skribblSettings = {
+        mode: modeEl ? modeEl.value : "classic",
+        language: langEl ? langEl.value : "german",
+        rounds: roundsEl ? roundsEl.value : "3",
+        drawingTime: timeEl ? timeEl.value : "80",
+        customWords: customWordsEl ? customWordsEl.value : ""
+    };
+
+    broadcast({
+        type: "GAME_SETTINGS_UPDATE",
+        gameId: "skribbol",
+        settings: partyState.skribblSettings
+    });
+};
+
+function applySkribblSettingsUI() {
+    const isHost = !!partyState.isHost;
+    const settings = partyState.skribblSettings || {
+        mode: "classic",
+        language: "german",
+        rounds: "3",
+        drawingTime: "80",
+        customWords: ""
+    };
+
+    const modeEl = document.getElementById("skribbl-opt-mode");
+    const langEl = document.getElementById("skribbl-opt-language");
+    const roundsEl = document.getElementById("skribbl-opt-rounds");
+    const timeEl = document.getElementById("skribbl-opt-drawing-time");
+    const customWordsEl = document.getElementById("skribbl-opt-custom-words");
+    const badgeEl = document.getElementById("skribblSettingsBadge");
+
+    if (modeEl && settings.mode !== undefined) modeEl.value = settings.mode;
+    if (langEl && settings.language !== undefined) langEl.value = settings.language;
+    if (roundsEl && settings.rounds !== undefined) roundsEl.value = settings.rounds;
+    if (timeEl && settings.drawingTime !== undefined) timeEl.value = settings.drawingTime;
+    if (customWordsEl && settings.customWords !== undefined) {
+        if (document.activeElement !== customWordsEl) {
+            customWordsEl.value = settings.customWords;
+        }
+    }
+
+    const inputs = [modeEl, langEl, roundsEl, timeEl, customWordsEl];
+    inputs.forEach(input => {
+        if (!input) return;
+        if (isHost) {
+            input.disabled = false;
+            input.classList.remove("is-disabled");
+        } else {
+            input.disabled = true;
+            input.classList.add("is-disabled");
+        }
+    });
+
+    if (badgeEl) {
+        if (isHost) {
+            badgeEl.className = "settings-role-badge";
+            badgeEl.innerText = "👑 Du bist Party-Host (Regeln anpassbar)";
+        } else {
+            badgeEl.className = "settings-role-badge guest";
+            const hostPlayer = partyState.players.find(p => p.isHost);
+            const hostName = hostPlayer ? hostPlayer.name : "Host";
+            badgeEl.innerText = `👑 Host bestimmt Regeln (${hostName})`;
+        }
+    }
 }
 
 // ==========================================================================
@@ -635,6 +730,12 @@ function handleServerMessage(data) {
                 if (data.isVotingActive !== undefined) {
                     partyState.isVotingActive = !!data.isVotingActive;
                 }
+                if (data.gameSettings && data.gameSettings.skribbol) {
+                    partyState.skribblSettings = {
+                        ...partyState.skribblSettings,
+                        ...data.gameSettings.skribbol
+                    };
+                }
 
                 updateHeaderUserBadge();
                 renderPlayerRoster();
@@ -643,6 +744,22 @@ function handleServerMessage(data) {
 
                 if (partyState.activeModalGameId) {
                     renderModalReadiness();
+                    if (partyState.activeModalGameId === "skribbol") {
+                        applySkribblSettingsUI();
+                    }
+                }
+            }
+            break;
+
+        case "GAME_SETTINGS_SYNC":
+        case "GAME_SETTINGS_UPDATE":
+            if (data.gameId === "skribbol" && data.settings) {
+                partyState.skribblSettings = {
+                    ...partyState.skribblSettings,
+                    ...data.settings
+                };
+                if (partyState.activeModalGameId === "skribbol") {
+                    applySkribblSettingsUI();
                 }
             }
             break;
@@ -1001,19 +1118,21 @@ function generateUUID() {
     });
 }
 
-async function createSkribblLobby(lobbyId, hostName) {
+async function createSkribblLobby(lobbyId, hostName, settings = {}) {
+    const s = settings || {};
     const params = new URLSearchParams({
         lobby_id: lobbyId,
         username: hostName || "Party-Host",
-        language: "german",
-        drawing_time: "80",
-        rounds: "3",
+        language: s.language || "german",
+        drawing_time: String(s.drawingTime || "80"),
+        rounds: String(s.rounds || "3"),
         max_players: "12",
-        custom_words: "",
+        custom_words: s.customWords || "",
         custom_words_per_turn: "1",
         clients_per_ip_limit: "24",
         words_per_turn: "3",
-        word_select_mode: "classic"
+        word_select_mode: s.mode || "classic",
+        score_calculation: "chill"
     });
 
     const endpoints = ['/skribbl/v1/lobby', '/v1/lobby'];
@@ -1091,6 +1210,16 @@ function showModalUI(gameId) {
         }
     }
 
+    const skribblSettingsSection = document.getElementById("skribblSettingsSection");
+    if (skribblSettingsSection) {
+        if (gameId === "skribbol") {
+            skribblSettingsSection.style.display = "flex";
+            applySkribblSettingsUI();
+        } else {
+            skribblSettingsSection.style.display = "none";
+        }
+    }
+
     updateHostPermissionsUI();
     syncPresence();
     renderModalReadiness();
@@ -1101,6 +1230,8 @@ function showModalUI(gameId) {
 window.closeGameModal = function() {
     const modalEl = document.getElementById("gameModal");
     if (modalEl) modalEl.style.display = "none";
+    const skribblSettingsSection = document.getElementById("skribblSettingsSection");
+    if (skribblSettingsSection) skribblSettingsSection.style.display = "none";
     partyState.activeModalGameId = null;
 
     // Only host broadcasts CLOSE_GAME_MODAL to all other players
@@ -1192,7 +1323,7 @@ window.launchCurrentGame = async function() {
         const hostName = partyState.currentUser ? partyState.currentUser.name : "Party-Host";
 
         try {
-            await createSkribblLobby(lobbyId, hostName);
+            await createSkribblLobby(lobbyId, hostName, partyState.skribblSettings);
         } catch (e) {
             console.error("Error creating Skribbl lobby:", e);
         }

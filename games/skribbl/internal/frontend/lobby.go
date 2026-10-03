@@ -16,6 +16,9 @@ type lobbyPageData struct {
 	*BasePageConfig
 	*api.LobbyData
 
+	LobbyID     string
+	UserSession string
+
 	Translation *translations.Translation
 	Locale      string
 }
@@ -92,10 +95,10 @@ func (handler *SSRHandler) ssrEnterLobbyNoChecks(
 				return
 			}
 
-			newPlayer := lobby.JoinPlayer(api.GetPlayername(request))
+			player = lobby.JoinPlayer(api.GetPlayername(request))
 
-			newPlayer.SetLastKnownAddress(requestAddress)
-			api.SetGameplayCookies(writer, request, newPlayer, lobby)
+			player.SetLastKnownAddress(requestAddress)
+			api.SetGameplayCookies(writer, request, player, lobby)
 		} else {
 			if player.Connected && player.GetWebsocket() != nil {
 				handler.userFacingError(writer, translation.Get("lobby-open-tab-exists"), translation)
@@ -105,9 +108,15 @@ func (handler *SSRHandler) ssrEnterLobbyNoChecks(
 			api.SetGameplayCookies(writer, request, player, lobby)
 		}
 
+		userSessionStr := ""
+		if player != nil {
+			userSessionStr = player.GetUserSession().String()
+		}
 		pageData = &lobbyPageData{
 			BasePageConfig: handler.basePageConfig,
 			LobbyData:      api.CreateLobbyData(handler.cfg, lobby),
+			LobbyID:        lobby.LobbyID,
+			UserSession:    userSessionStr,
 			Translation:    translation,
 			Locale:         locale,
 		}

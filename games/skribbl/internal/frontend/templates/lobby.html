@@ -17,6 +17,10 @@
     <link rel="prefetch" href='{{.RootPath}}/resources/{{.WithCacheBust "checkmark.svg"}}' />
     <link rel="prefetch" href='{{.RootPath}}/resources/{{.WithCacheBust "sound.svg"}}' />
     <link rel="prefetch" href='{{.RootPath}}/resources/{{.WithCacheBust "no-sound.svg"}}' />
+    <script>
+        window.SKRIBBL_LOBBY_ID = "{{.LobbyID}}";
+        window.SKRIBBL_USER_SESSION = "{{.UserSession}}";
+    </script>
 </head>
 
 <body {{if eq .Translation.IsRtl true}} dir="rtl" {{end}}>
