@@ -13,6 +13,7 @@ class Room {
         this.userVotes = new Map(); // playerId -> gameId
         this.isVotingActive = false;
         this.activeModalGameId = null;
+        this.activeGame = null;
         this.hostId = null;
         this.disconnectTimers = new Map(); // playerId -> timer
     }
@@ -171,7 +172,8 @@ class Room {
             hostId: this.hostId,
             isVotingActive: this.isVotingActive,
             votes: this.votes,
-            activeModalGameId: this.activeModalGameId
+            activeModalGameId: this.activeModalGameId,
+            activeGame: this.activeGame
         });
     }
 
@@ -250,7 +252,12 @@ wss.on('connection', (ws, req) => {
                     room.setReadyState(data.playerId, data.isReady);
                     break;
 
-                case 'OPEN_GAME_MODAL':
+                case 'OPEN_GAME_MODAL': {
+                    const senderId = room.socketToPlayerId.get(ws);
+                    if (senderId !== room.hostId) {
+                        console.warn(`[Room ${room.code}] Non-host (${senderId}) tried to open game modal.`);
+                        break;
+                    }
                     room.activeModalGameId = data.gameId;
                     room.broadcast({
                         type: 'OPEN_GAME_MODAL',
@@ -258,11 +265,17 @@ wss.on('connection', (ws, req) => {
                         initiatedBy: data.initiatedBy
                     }, ws);
                     break;
+                }
 
-                case 'CLOSE_GAME_MODAL':
+                case 'CLOSE_GAME_MODAL': {
+                    const senderId = room.socketToPlayerId.get(ws);
+                    if (senderId !== room.hostId) {
+                        break;
+                    }
                     room.activeModalGameId = null;
                     room.broadcast({ type: 'CLOSE_GAME_MODAL' }, ws);
                     break;
+                }
 
                 case 'VOTE_CAST':
                     room.castVote(data.playerId, data.gameId);
@@ -272,17 +285,34 @@ wss.on('connection', (ws, req) => {
                     room.toggleVoting(data.isVotingActive);
                     break;
 
-                case 'LAUNCH_GAME':
+                case 'LAUNCH_GAME': {
+                    const senderId = room.socketToPlayerId.get(ws);
+                    if (senderId !== room.hostId) {
+                        console.warn(`[Room ${room.code}] Non-host (${senderId}) tried to launch game.`);
+                        break;
+                    }
+                    room.activeGame = {
+                        gameId: data.gameId,
+                        lobbyId: data.lobbyId || null
+                    };
+                    room.activeModalGameId = null;
                     room.broadcast({
                         type: 'LAUNCH_GAME',
-                        gameId: data.gameId
+                        gameId: data.gameId,
+                        lobbyId: data.lobbyId || null
                     }, ws);
                     break;
+                }
 
-                case 'EXIT_GAME':
-                    room.activeModalGameId = null;
-                    room.broadcast({ type: 'EXIT_GAME' }, ws);
+                case 'EXIT_GAME': {
+                    const senderId = room.socketToPlayerId.get(ws);
+                    if (senderId === room.hostId) {
+                        room.activeModalGameId = null;
+                        room.activeGame = null;
+                        room.broadcast({ type: 'EXIT_GAME' }, ws);
+                    }
                     break;
+                }
             }
         } catch (err) {
             console.error('Error handling WebSocket message:', err);

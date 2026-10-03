@@ -198,7 +198,8 @@ const partyState = {
         price_guess: 0
     },
     userVotedGame: null,
-    activeModalGameId: null
+    activeModalGameId: null,
+    currentLobbyId: null
 };
 
 let tempSelectedAvatar = null;
@@ -252,10 +253,12 @@ function initUserSession() {
         partyState.currentUser = savedUser;
         partyState.isHost = savedUser.isHost;
         updateHeaderUserBadge();
+        updateHostPermissionsUI();
         syncPresence();
     } else {
         // Tab has not confirmed nickname yet -> show welcome modal
         showJoinModal();
+        updateHostPermissionsUI();
         syncPresence();
     }
 }
@@ -473,6 +476,62 @@ function renderPlayerRoster() {
         `;
         rosterEl.appendChild(card);
     });
+    updateHostPermissionsUI();
+}
+
+function updateHostPermissionsUI() {
+    const isHost = !!partyState.isHost;
+
+    // 1. Update Game Card buttons
+    document.querySelectorAll(".game-card:not(.roulette-card) .play-btn").forEach(btn => {
+        if (isHost) {
+            btn.classList.remove("waiting-host");
+            btn.innerText = "Spielen & Starten";
+            btn.title = "Spiel für alle Party-Gäste auswählen";
+        } else {
+            btn.classList.add("waiting-host");
+            btn.innerText = "Warten auf Host 👑";
+            btn.title = "Nur der Party-Leader kann ein Spiel starten";
+        }
+    });
+
+    // 2. Update Roulette Button
+    const rouletteBtn = document.querySelector(".roulette-btn");
+    if (rouletteBtn) {
+        if (isHost) {
+            rouletteBtn.classList.remove("waiting-host");
+            rouletteBtn.innerText = "🎲 Zufälliges Spiel wählen";
+            rouletteBtn.title = "Zufälliges Spiel für alle Freunde auswählen";
+        } else {
+            rouletteBtn.classList.add("waiting-host");
+            rouletteBtn.innerText = "Warten auf Host 🎲";
+            rouletteBtn.title = "Nur der Party-Leader kann das Roulette drehen";
+        }
+    }
+
+    // 3. Update Game Modal Controls if open
+    const launchBtn = document.getElementById("launchGameBtn");
+    const nonHostWait = document.getElementById("modalNonHostWait");
+    const nonHostWaitText = document.getElementById("modalNonHostWaitText");
+
+    if (launchBtn && nonHostWait) {
+        if (isHost) {
+            launchBtn.style.display = "inline-flex";
+            nonHostWait.style.display = "none";
+            const game = partyState.games[partyState.activeModalGameId];
+            const title = game ? game.title : "Spiel";
+            launchBtn.innerText = `🚀 ${title} starten`;
+            launchBtn.disabled = false;
+        } else {
+            launchBtn.style.display = "none";
+            nonHostWait.style.display = "inline-flex";
+            const hostPlayer = partyState.players.find(p => p.isHost);
+            const hostName = hostPlayer ? hostPlayer.name : "Host";
+            if (nonHostWaitText) {
+                nonHostWaitText.innerText = `Warten auf Start durch Host (${hostName})...`;
+            }
+        }
+    }
 }
 
 // ==========================================================================
@@ -580,6 +639,7 @@ function handleServerMessage(data) {
                 updateHeaderUserBadge();
                 renderPlayerRoster();
                 applyVoteStateUI();
+                updateHostPermissionsUI();
 
                 if (partyState.activeModalGameId) {
                     renderModalReadiness();
@@ -620,7 +680,10 @@ function handleServerMessage(data) {
 
         case "LAUNCH_GAME":
             if (data.gameId && partyState.games[data.gameId]) {
-                executeCountdownAndLaunch(partyState.games[data.gameId]);
+                if (data.lobbyId) {
+                    partyState.currentLobbyId = data.lobbyId;
+                }
+                executeCountdownAndLaunch(partyState.games[data.gameId], data.lobbyId);
             }
             break;
 
@@ -923,13 +986,70 @@ function ensureCurrentUser() {
     }
 }
 
+// ==========================================================================
+// Helpers: Deterministic & Random UUIDs and Skribbl Lobby API
+// ==========================================================================
+
+function generateUUID() {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+        return crypto.randomUUID();
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === "x" ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
+
+async function createSkribblLobby(lobbyId, hostName) {
+    const params = new URLSearchParams({
+        lobby_id: lobbyId,
+        username: hostName || "Party-Host",
+        language: "german",
+        drawing_time: "80",
+        rounds: "3",
+        max_players: "12",
+        custom_words: "",
+        custom_words_per_turn: "1",
+        clients_per_ip_limit: "24",
+        words_per_turn: "3",
+        word_select_mode: "classic"
+    });
+
+    const endpoints = ['/skribbl/v1/lobby', '/v1/lobby'];
+    for (const ep of endpoints) {
+        try {
+            const res = await fetch(ep, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            });
+            if (res.ok) {
+                console.log(`Skribbl lobby created successfully via ${ep}:`, lobbyId);
+                return true;
+            }
+        } catch (e) {
+            console.warn(`Skribbl creation attempt failed at ${ep}:`, e);
+        }
+    }
+    return false;
+}
+
+// ==========================================================================
+// Game Modal & Synchronization Flow (Host Controls & Readiness)
+// ==========================================================================
+
 window.openGameModal = function(gameId) {
     ensureCurrentUser();
+    if (!partyState.isHost) {
+        showToast("⚠️ Nur der Party-Leader kann ein Spiel auswählen!");
+        return;
+    }
     showModalUI(gameId);
     broadcast({
         type: "OPEN_GAME_MODAL",
         gameId: gameId,
-        initiatedBy: partyState.currentUser ? partyState.currentUser.name : "Spieler"
+        initiatedBy: partyState.currentUser ? partyState.currentUser.name : "Party-Host"
     });
 };
 
@@ -951,9 +1071,10 @@ function showModalUI(gameId) {
     if (metaEl) metaEl.innerText = `👥 ${game.minPlayers}–${game.maxPlayers} Spieler`;
     if (descEl) descEl.innerText = game.desc;
 
-    // Reset user readiness to ready
+    // Reset readiness state:
+    // Party host is automatically ready. Non-hosts are prompted to click "Ich bin bereit!"
     if (partyState.currentUser) {
-        partyState.currentUser.isReady = true;
+        partyState.currentUser.isReady = partyState.isHost ? true : false;
         try {
             sessionStorage.setItem(STORAGE_KEY_USER, JSON.stringify(partyState.currentUser));
         } catch (e) {}
@@ -961,10 +1082,16 @@ function showModalUI(gameId) {
 
     const btn = document.getElementById("toggleReadyBtn");
     if (btn) {
-        btn.className = "ready-toggle-btn ready";
-        btn.innerHTML = `<span>✅</span> <span>Ich bin bereit!</span>`;
+        if (partyState.currentUser && partyState.currentUser.isReady) {
+            btn.className = "ready-toggle-btn ready";
+            btn.innerHTML = `<span>✅</span> <span>Ich bin bereit!</span>`;
+        } else {
+            btn.className = "ready-toggle-btn not-ready";
+            btn.innerHTML = `<span>⏳</span> <span>Bereit melden!</span>`;
+        }
     }
 
+    updateHostPermissionsUI();
     syncPresence();
     renderModalReadiness();
 
@@ -975,7 +1102,11 @@ window.closeGameModal = function() {
     const modalEl = document.getElementById("gameModal");
     if (modalEl) modalEl.style.display = "none";
     partyState.activeModalGameId = null;
-    broadcast({ type: "CLOSE_GAME_MODAL" });
+
+    // Only host broadcasts CLOSE_GAME_MODAL to all other players
+    if (partyState.isHost) {
+        broadcast({ type: "CLOSE_GAME_MODAL" });
+    }
 };
 
 window.renderModalReadiness = function() {
@@ -998,7 +1129,7 @@ window.renderModalReadiness = function() {
                 ${p.avatar}
                 <span class="mini-ready-check">${isReady ? '✓' : '…'}</span>
             </div>
-            <span class="mini-player-name">${p.name} ${isMe ? '(Du)' : ''}</span>
+            <span class="mini-player-name">${p.name} ${isMe ? '(Du)' : ''} ${p.isHost ? '👑' : ''}</span>
         `;
         miniContainer.appendChild(item);
     });
@@ -1008,16 +1139,7 @@ window.renderModalReadiness = function() {
         statusEl.innerText = `${readyCount} von ${partyState.players.length} bereit`;
     }
 
-    const launchBtn = document.getElementById("launchGameBtn");
-    if (launchBtn) {
-        const game = partyState.games[partyState.activeModalGameId];
-        const title = game ? game.title : "Spiel";
-        launchBtn.innerText = `🚀 ${title} starten`;
-        launchBtn.disabled = false;
-        launchBtn.style.opacity = "1";
-        launchBtn.style.cursor = "pointer";
-        launchBtn.title = "Klicke zum Starten der Runde";
-    }
+    updateHostPermissionsUI();
 };
 
 window.toggleMyReadyState = function() {
@@ -1033,7 +1155,7 @@ window.toggleMyReadyState = function() {
             btn.innerHTML = `<span>✅</span> <span>Ich bin bereit!</span>`;
         } else {
             btn.className = "ready-toggle-btn not-ready";
-            btn.innerHTML = `<span>⏳</span> <span>Noch nicht bereit</span>`;
+            btn.innerHTML = `<span>⏳</span> <span>Bereit melden!</span>`;
         }
     }
 
@@ -1047,16 +1169,48 @@ window.toggleMyReadyState = function() {
     renderModalReadiness();
 };
 
-window.launchCurrentGame = function() {
+window.launchCurrentGame = async function() {
+    if (!partyState.isHost) {
+        showToast("⚠️ Nur der Party-Leader kann das Spiel starten!");
+        return;
+    }
+
     const gameId = partyState.activeModalGameId;
     const game = partyState.games[gameId];
     if (!game) return;
 
-    broadcast({ type: "LAUNCH_GAME", gameId: gameId });
-    executeCountdownAndLaunch(game);
+    const launchBtn = document.getElementById("launchGameBtn");
+    if (launchBtn) {
+        launchBtn.disabled = true;
+        launchBtn.innerText = "⏳ Initialisiere Lobby...";
+    }
+
+    let lobbyId = null;
+    if (gameId === "skribbol") {
+        lobbyId = generateUUID();
+        partyState.currentLobbyId = lobbyId;
+        const hostName = partyState.currentUser ? partyState.currentUser.name : "Party-Host";
+
+        try {
+            await createSkribblLobby(lobbyId, hostName);
+        } catch (e) {
+            console.error("Error creating Skribbl lobby:", e);
+        }
+    }
+
+    broadcast({
+        type: "LAUNCH_GAME",
+        gameId: gameId,
+        lobbyId: lobbyId
+    });
+
+    executeCountdownAndLaunch(game, lobbyId);
 };
 
-function executeCountdownAndLaunch(game) {
+function executeCountdownAndLaunch(game, lobbyId) {
+    if (lobbyId) {
+        partyState.currentLobbyId = lobbyId;
+    }
     const gameModal = document.getElementById("gameModal");
     if (gameModal) gameModal.style.display = "none";
 
@@ -1079,14 +1233,18 @@ function executeCountdownAndLaunch(game) {
         } else {
             clearInterval(interval);
             countdownEl.style.display = "none";
-            startGameView(game);
+            startGameView(game, partyState.currentLobbyId);
         }
     }, 800);
 }
 
-function getGameUrl(game) {
+function getGameUrl(game, lobbyId) {
     const userName = partyState.currentUser ? partyState.currentUser.name : "Gast";
     if (game.id === "skribbol") {
+        const id = lobbyId || partyState.currentLobbyId;
+        if (id) {
+            return `/skribbl/lobby/${id}?username=${encodeURIComponent(userName)}`;
+        }
         return `/skribbl/?username=${encodeURIComponent(userName)}`;
     } else if (game.id === "uno") {
         return `/uno/?lobby=${encodeURIComponent(ROOM_CODE)}&name=${encodeURIComponent(userName)}`;
@@ -1100,7 +1258,7 @@ function getGameUrl(game) {
     return game.embedUrl;
 }
 
-function startGameView(game) {
+function startGameView(game, lobbyId) {
     const overlay = document.getElementById("activeGameOverlay");
     const iframe = document.getElementById("gameIframe");
     const hudTitle = document.getElementById("hudGameTitle");
@@ -1110,7 +1268,7 @@ function startGameView(game) {
     hudTitle.innerText = `${game.title} • Party-Raum`;
 
     if (game.id === "skribbol" || game.id === "uno" || game.id === "codenames" || game.id === "monopoly" || game.id === "price_guess") {
-        iframe.src = getGameUrl(game);
+        iframe.src = getGameUrl(game, lobbyId);
     } else {
         iframe.srcdoc = `
             <!DOCTYPE html>
@@ -1130,7 +1288,9 @@ function startGameView(game) {
 }
 
 function exitActiveGame() {
-    broadcast({ type: "EXIT_GAME" });
+    if (partyState.isHost) {
+        broadcast({ type: "EXIT_GAME" });
+    }
     doExitGameView();
 }
 
@@ -1291,6 +1451,10 @@ function castVote(gameId) {
 // ==========================================================================
 
 window.spinRoulette = function() {
+    if (!partyState.isHost) {
+        showToast("⚠️ Nur der Party-Leader kann das Roulette drehen!");
+        return;
+    }
     const available = ["skribbol", "uno", "codenames", "price_guess"];
     const pick = available[Math.floor(Math.random() * available.length)];
     const chosenGame = partyState.games[pick];
