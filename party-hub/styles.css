@@ -160,6 +160,28 @@ body {
     box-shadow: 3px 3px 0px var(--ink);
 }
 
+.live-dot-badge {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+    display: inline-block;
+    transition: background 0.3s, box-shadow 0.3s;
+    flex-shrink: 0;
+}
+
+.live-dot-badge.disconnected {
+    background: #ef4444;
+    box-shadow: 0 0 6px #ef4444;
+    animation: livePulse 1s infinite alternate;
+}
+
+@keyframes livePulse {
+    from { opacity: 0.3; }
+    to { opacity: 1; }
+}
+
 .room-code-tag {
     display: flex;
     align-items: center;

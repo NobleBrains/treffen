@@ -53,8 +53,88 @@ const STORAGE_KEY_USER = `partyhub_user_${ROOM_CODE}`;
 const STORAGE_KEY_JOINED = `partyhub_joined_${ROOM_CODE}`;
 const STORAGE_KEY_VOTES = `partyhub_votes_${ROOM_CODE}`;
 
-// Native cross-tab broadcast bus
+// Native cross-tab broadcast bus (fallback for same-device multi-tab)
 const channel = typeof BroadcastChannel !== "undefined" ? new BroadcastChannel(`partyhub_bus_${ROOM_CODE}`) : null;
+
+// ==========================================================================
+// Real-Time Multi-Device WebSocket Client
+// ==========================================================================
+let socket = null;
+let socketReconnectTimer = null;
+let socketConnected = false;
+
+function initWebSocket() {
+    if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+        return;
+    }
+
+    const wsProto = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsHost = window.location.host;
+    const wsUrl = `${wsProto}//${wsHost}/party-ws?room=${encodeURIComponent(ROOM_CODE)}`;
+
+    try {
+        socket = new WebSocket(wsUrl);
+
+        socket.onopen = () => {
+            console.log("⚡ Live WebSocket connected for room:", ROOM_CODE);
+            socketConnected = true;
+            updateConnectionStatus(true);
+
+            if (partyState.currentUser) {
+                sendSocketMessage({
+                    type: "JOIN",
+                    room: ROOM_CODE,
+                    user: partyState.currentUser
+                });
+            }
+        };
+
+        socket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                handleServerMessage(data);
+            } catch (err) {
+                console.error("Failed to parse WebSocket message:", err);
+            }
+        };
+
+        socket.onclose = () => {
+            socketConnected = false;
+            updateConnectionStatus(false);
+            clearTimeout(socketReconnectTimer);
+            socketReconnectTimer = setTimeout(initWebSocket, 2000);
+        };
+
+        socket.onerror = (err) => {
+            socketConnected = false;
+            updateConnectionStatus(false);
+        };
+    } catch (e) {
+        socketReconnectTimer = setTimeout(initWebSocket, 2500);
+    }
+}
+
+function updateConnectionStatus(connected) {
+    const el = document.getElementById("liveIndicator");
+    if (!el) return;
+    if (connected) {
+        el.className = "live-dot-badge";
+        el.title = "Live mit allen Geräten verbunden";
+    } else {
+        el.className = "live-dot-badge disconnected";
+        el.title = "Verbindung wird wiederhergestellt...";
+    }
+}
+
+function sendSocketMessage(msg) {
+    if (socket && socket.readyState === WebSocket.OPEN) {
+        try {
+            socket.send(JSON.stringify(msg));
+        } catch (e) {
+            console.error("WebSocket send error:", e);
+        }
+    }
+}
 
 function broadcast(msg) {
     if (channel) {
@@ -64,6 +144,7 @@ function broadcast(msg) {
             console.error("Broadcast error:", e);
         }
     }
+    sendSocketMessage(msg);
 }
 
 const partyState = {
@@ -79,7 +160,7 @@ const partyState = {
             minPlayers: 2,
             maxPlayers: 12,
             desc: "Kreatives Zeichnen und Erraten im Freundeskreis. Durch unser neues Framework könnt ihr spannende Custom Modes wählen!",
-            embedUrl: "http://localhost:8080/"
+            embedUrl: "/skribbl/"
         },
         uno: {
             id: "uno",
@@ -88,7 +169,7 @@ const partyState = {
             minPlayers: 2,
             maxPlayers: 8,
             desc: "Der fiese Kartenklassiker ohne Werbung. Ziehe 4, Aussetzen und Farbwünsche sorgen für beste Schadenfreude.",
-            embedUrl: "http://localhost:8085/"
+            embedUrl: "/uno/"
         },
         codenames: {
             id: "codenames",
@@ -97,7 +178,7 @@ const partyState = {
             minPlayers: 2,
             maxPlayers: 12,
             desc: "Zwei Geheimdienstchefs geben geheime Ein-Wort-Hinweise. Welches Agenten-Team entschlüsselt zuerst alle eigenen Wörter?",
-            embedUrl: "http://localhost:5005/"
+            embedUrl: "/codenames/"
         },
         price_guess: {
             id: "price_guess",
@@ -106,7 +187,7 @@ const partyState = {
             minPlayers: 1,
             maxPlayers: 12,
             desc: "Errate die Preise von echten Produkten! Klassischer Schätzmodus, Höher oder Niedriger (This or That) und Echtzeit-Mehrspieler mit Freunden.",
-            embedUrl: "http://localhost:8088/"
+            embedUrl: "/price-guess/"
         }
     },
     isVotingActive: false,
@@ -264,6 +345,13 @@ window.handleJoinSubmit = function(e) {
 
     updateHeaderUserBadge();
     syncPresence();
+    
+    // Send join over live WebSocket
+    sendSocketMessage({
+        type: "JOIN",
+        room: ROOM_CODE,
+        user: newUser
+    });
     broadcast({ type: "PRESENCE_PING" });
 
     showToast(`Willkommen bei Treffen, ${newUser.name}! 🎉`);
@@ -289,38 +377,44 @@ function getRosterFromStorage() {
 }
 
 function syncPresence() {
-    let roster = getRosterFromStorage();
     const isJoined = sessionStorage.getItem(STORAGE_KEY_JOINED) === "true";
 
     if (partyState.currentUser && isJoined) {
-        // Check if there is an active host among others
-        const otherPlayers = Object.values(roster).filter(p => p.id !== partyState.currentUser.id);
-        const otherHost = otherPlayers.find(p => p.isHost);
+        partyState.currentUser.lastSeen = Date.now();
 
-        if (!otherHost && !partyState.currentUser.isHost) {
-            // Oldest active player inherits host
-            const all = [...otherPlayers, partyState.currentUser].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
-            if (all.length > 0 && all[0].id === partyState.currentUser.id) {
-                partyState.currentUser.isHost = true;
-                try {
-                    sessionStorage.setItem(STORAGE_KEY_USER, JSON.stringify(partyState.currentUser));
-                } catch (e) {}
-            }
+        if (socketConnected) {
+            sendSocketMessage({
+                type: "HEARTBEAT",
+                room: ROOM_CODE,
+                playerId: partyState.currentUser.id
+            });
         }
 
-        partyState.currentUser.lastSeen = Date.now();
+        let roster = getRosterFromStorage();
         roster[partyState.currentUser.id] = partyState.currentUser;
-
         try {
             localStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(roster));
         } catch (e) {}
 
-        partyState.isHost = partyState.currentUser.isHost;
+        // Fallback local host election when offline / not connected to server
+        if (!socketConnected) {
+            const otherPlayers = Object.values(roster).filter(p => p.id !== partyState.currentUser.id);
+            const otherHost = otherPlayers.find(p => p.isHost);
+            if (!otherHost && !partyState.currentUser.isHost) {
+                const all = [...otherPlayers, partyState.currentUser].sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+                if (all.length > 0 && all[0].id === partyState.currentUser.id) {
+                    partyState.currentUser.isHost = true;
+                    try {
+                        sessionStorage.setItem(STORAGE_KEY_USER, JSON.stringify(partyState.currentUser));
+                    } catch (e) {}
+                }
+            }
+            partyState.isHost = partyState.currentUser.isHost;
+            partyState.players = Object.values(roster).sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+        }
+
         updateHeaderUserBadge();
     }
-
-    // Sort players by joinedAt so host / first arrivals remain in consistent order
-    partyState.players = Object.values(roster).sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
 
     renderPlayerRoster();
 
@@ -432,6 +526,11 @@ window.saveProfileModal = function() {
     } catch (e) {}
 
     syncPresence();
+    sendSocketMessage({
+        type: "UPDATE_USER",
+        room: ROOM_CODE,
+        user: partyState.currentUser
+    });
     broadcast({ type: "PRESENCE_PING" });
 
     closeProfileModal();
@@ -442,58 +541,107 @@ window.saveProfileModal = function() {
 // Cross-Tab Broadcast Listener
 // ==========================================================================
 
-function setupChannelListener() {
-    if (!channel) return;
+// ==========================================================================
+// Central Real-Time Message Handler (WebSocket & BroadcastChannel)
+// ==========================================================================
 
-    channel.onmessage = (event) => {
-        const data = event.data;
-        if (!data) return;
+function handleServerMessage(data) {
+    if (!data || !data.type) return;
 
-        switch (data.type) {
-            case "PRESENCE_PING":
-            case "PLAYER_LEFT":
-                syncPresence();
-                break;
+    switch (data.type) {
+        case "ROSTER_SYNC":
+            if (Array.isArray(data.players)) {
+                // Update players from real-time server
+                partyState.players = data.players;
 
-            case "OPEN_GAME_MODAL":
-                if (data.gameId && partyState.games[data.gameId]) {
-                    showModalUI(data.gameId);
-                    if (data.initiatedBy && data.initiatedBy !== partyState.currentUser.name) {
-                        showToast(`🔔 ${data.initiatedBy} lädt zu ${partyState.games[data.gameId].title} ein!`);
+                // Sync current user state if we are already in the room
+                if (partyState.currentUser) {
+                    const serverMe = data.players.find(p => p.id === partyState.currentUser.id);
+                    if (serverMe) {
+                        partyState.currentUser.isHost = !!serverMe.isHost;
+                        partyState.isHost = partyState.currentUser.isHost;
+                    } else if (sessionStorage.getItem(STORAGE_KEY_JOINED) === "true") {
+                        // Resend join if server restarted
+                        sendSocketMessage({
+                            type: "JOIN",
+                            room: ROOM_CODE,
+                            user: partyState.currentUser
+                        });
                     }
                 }
-                break;
 
-            case "CLOSE_GAME_MODAL":
-                const modal = document.getElementById("gameModal");
-                if (modal) modal.style.display = "none";
-                partyState.activeModalGameId = null;
-                break;
+                if (data.votes) {
+                    partyState.votes = data.votes;
+                }
+                if (data.isVotingActive !== undefined) {
+                    partyState.isVotingActive = !!data.isVotingActive;
+                }
 
-            case "READY_STATE_CHANGED":
-                if (data.playerId) {
-                    const p = partyState.players.find(x => x.id === data.playerId);
-                    if (p) p.isReady = data.isReady;
+                updateHeaderUserBadge();
+                renderPlayerRoster();
+                applyVoteStateUI();
+
+                if (partyState.activeModalGameId) {
                     renderModalReadiness();
                 }
-                break;
+            }
+            break;
 
-            case "LAUNCH_GAME":
-                if (data.gameId && partyState.games[data.gameId]) {
-                    executeCountdownAndLaunch(partyState.games[data.gameId]);
+        case "PRESENCE_PING":
+        case "PLAYER_LEFT":
+            if (data.name) {
+                showToast(`👋 ${data.name} hat die Party verlassen.`);
+            }
+            syncPresence();
+            break;
+
+        case "OPEN_GAME_MODAL":
+            if (data.gameId && partyState.games[data.gameId]) {
+                showModalUI(data.gameId);
+                if (data.initiatedBy && partyState.currentUser && data.initiatedBy !== partyState.currentUser.name) {
+                    showToast(`🔔 ${data.initiatedBy} lädt zu ${partyState.games[data.gameId].title} ein!`);
                 }
-                break;
+            }
+            break;
 
-            case "EXIT_GAME":
-                doExitGameView();
-                break;
+        case "CLOSE_GAME_MODAL":
+            const modal = document.getElementById("gameModal");
+            if (modal) modal.style.display = "none";
+            partyState.activeModalGameId = null;
+            break;
 
-            case "VOTE_UPDATE":
-                partyState.votes = data.votes || partyState.votes;
+        case "READY_STATE_CHANGED":
+            if (data.playerId) {
+                const p = partyState.players.find(x => x.id === data.playerId);
+                if (p) p.isReady = data.isReady;
+                renderModalReadiness();
+            }
+            break;
+
+        case "LAUNCH_GAME":
+            if (data.gameId && partyState.games[data.gameId]) {
+                executeCountdownAndLaunch(partyState.games[data.gameId]);
+            }
+            break;
+
+        case "EXIT_GAME":
+            doExitGameView();
+            break;
+
+        case "VOTE_UPDATE":
+            partyState.votes = data.votes || partyState.votes;
+            if (data.isVotingActive !== undefined) {
                 partyState.isVotingActive = !!data.isVotingActive;
-                applyVoteStateUI();
-                break;
-        }
+            }
+            applyVoteStateUI();
+            break;
+    }
+}
+
+function setupChannelListener() {
+    if (!channel) return;
+    channel.onmessage = (event) => {
+        handleServerMessage(event.data);
     };
 }
 
@@ -516,6 +664,7 @@ window.addEventListener("beforeunload", () => {
 
 document.addEventListener("DOMContentLoaded", () => {
     initUserSession();
+    initWebSocket();
     syncPresence();
     setupFilters();
     setupEventListeners();
@@ -1021,6 +1170,11 @@ function saveVotesToStorage() {
 function toggleVoteMode() {
     partyState.isVotingActive = !partyState.isVotingActive;
     saveVotesToStorage();
+    sendSocketMessage({
+        type: "VOTE_TOGGLE",
+        room: ROOM_CODE,
+        isVotingActive: partyState.isVotingActive
+    });
     broadcast({
         type: "VOTE_UPDATE",
         votes: partyState.votes,
@@ -1114,6 +1268,14 @@ function castVote(gameId) {
     }
 
     saveVotesToStorage();
+    if (partyState.currentUser) {
+        sendSocketMessage({
+            type: "VOTE_CAST",
+            room: ROOM_CODE,
+            playerId: partyState.currentUser.id,
+            gameId: gameId
+        });
+    }
     broadcast({
         type: "VOTE_UPDATE",
         votes: partyState.votes,

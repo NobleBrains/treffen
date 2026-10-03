@@ -2,6 +2,21 @@ version: '3.8'
 
 services:
   # =========================================================================
+  # =========================================================================
+  # PartyHub Live WebSocket Server (Echtzeit-Synchronisation aller Geräte)
+  # =========================================================================
+  party-server:
+    build:
+      context: ./party-server
+      dockerfile: Dockerfile
+    container_name: party-server
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    networks:
+      - party-net
+
+  # =========================================================================
   # PartyHub Hauptseite (Lobby, Raum-Verwaltung, synchroner Start)
   # =========================================================================
   partyhub:
@@ -16,6 +31,8 @@ services:
     volumes:
       - ./party-hub:/usr/share/nginx/html:ro
       - ./letsencrypt:/etc/letsencrypt:ro
+    depends_on:
+      - party-server
     networks:
       - party-net
 
