@@ -464,11 +464,22 @@ function renderPlayerRoster() {
 
     rosterEl.innerHTML = "";
 
+    const isHostMe = !!partyState.isHost;
+
     partyState.players.forEach(p => {
-        const isMe = p.id === partyState.currentUser.id;
+        const isMe = partyState.currentUser && p.id === partyState.currentUser.id;
         const card = document.createElement("div");
         card.className = `player-card ${p.isHost ? 'is-host' : ''}`;
         
+        let hostBtnHtml = '';
+        if (isHostMe && !isMe) {
+            hostBtnHtml = `
+                <button class="transfer-host-btn" type="button" title="${p.name} zum Party-Leader machen">
+                    👑 Leader übergeben
+                </button>
+            `;
+        }
+
         card.innerHTML = `
             <div class="player-card-avatar" style="background: ${p.color || '#6366f1'}22; border: 2.5px solid ${p.color || '#6366f1'};">
                 ${p.avatar}
@@ -480,11 +491,90 @@ function renderPlayerRoster() {
                 </span>
                 <span class="player-card-tag">${p.status || 'Bereit'}</span>
             </div>
+            ${hostBtnHtml}
         `;
+
+        if (isHostMe && !isMe) {
+            const btn = card.querySelector(".transfer-host-btn");
+            if (btn) {
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    transferHostTo(p.id, p.name);
+                });
+            }
+        }
+
         rosterEl.appendChild(card);
     });
     updateHostPermissionsUI();
 }
+
+window.transferHostTo = function(targetPlayerId, targetName) {
+    if (!partyState.isHost) {
+        showToast("⚠️ Nur der aktuelle Party-Host kann die Rolle übergeben.");
+        return;
+    }
+    if (!targetPlayerId || (partyState.currentUser && targetPlayerId === partyState.currentUser.id)) {
+        return;
+    }
+
+    const displayName = targetName || "diesen Mitspieler";
+    const confirmed = window.confirm(`Möchtest du die Party-Leader-Rolle (👑) wirklich an "${displayName}" übergeben?`);
+    if (!confirmed) return;
+
+    // Send via WebSocket to server
+    sendSocketMessage({
+        type: "TRANSFER_HOST",
+        room: ROOM_CODE,
+        targetPlayerId: targetPlayerId,
+        targetName: displayName
+    });
+
+    // Also send via local BroadcastChannel for multi-tab
+    broadcast({
+        type: "HOST_TRANSFERRED",
+        newHostId: targetPlayerId,
+        newHostName: displayName,
+        oldHostId: partyState.currentUser ? partyState.currentUser.id : null,
+        oldHostName: partyState.currentUser ? partyState.currentUser.name : null
+    });
+
+    // Optimistically update local state
+    if (partyState.currentUser) {
+        partyState.currentUser.isHost = false;
+        try {
+            sessionStorage.setItem(STORAGE_KEY_USER, JSON.stringify(partyState.currentUser));
+        } catch (e) {}
+    }
+    partyState.isHost = false;
+
+    let roster = getRosterFromStorage();
+    if (partyState.currentUser && roster[partyState.currentUser.id]) {
+        roster[partyState.currentUser.id].isHost = false;
+    }
+    if (roster[targetPlayerId]) {
+        roster[targetPlayerId].isHost = true;
+    }
+    try {
+        localStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(roster));
+    } catch (e) {}
+
+    partyState.players.forEach(p => {
+        p.isHost = (p.id === targetPlayerId);
+    });
+
+    updateHeaderUserBadge();
+    renderPlayerRoster();
+    updateHostPermissionsUI();
+    if (partyState.activeModalGameId) {
+        renderModalReadiness();
+        if (partyState.activeModalGameId === "skribbol") {
+            applySkribblSettingsUI();
+        }
+    }
+
+    showToast(`👑 Du hast die Party-Leitung an ${displayName} übergeben.`);
+};
 
 function updateHostPermissionsUI() {
     const isHost = !!partyState.isHost;
@@ -814,6 +904,49 @@ function handleServerMessage(data) {
                 partyState.isVotingActive = !!data.isVotingActive;
             }
             applyVoteStateUI();
+            break;
+
+        case "HOST_TRANSFERRED":
+        case "TRANSFER_HOST":
+            if (data.newHostId) {
+                const isNewHostMe = partyState.currentUser && partyState.currentUser.id === data.newHostId;
+                if (partyState.currentUser) {
+                    partyState.currentUser.isHost = isNewHostMe;
+                    try {
+                        sessionStorage.setItem(STORAGE_KEY_USER, JSON.stringify(partyState.currentUser));
+                    } catch (e) {}
+                }
+                partyState.isHost = isNewHostMe;
+
+                let roster = getRosterFromStorage();
+                Object.values(roster).forEach(p => {
+                    p.isHost = (p.id === data.newHostId);
+                });
+                try {
+                    localStorage.setItem(STORAGE_KEY_PLAYERS, JSON.stringify(roster));
+                } catch (e) {}
+
+                partyState.players.forEach(p => {
+                    p.isHost = (p.id === data.newHostId);
+                });
+
+                updateHeaderUserBadge();
+                renderPlayerRoster();
+                updateHostPermissionsUI();
+                if (partyState.activeModalGameId) {
+                    renderModalReadiness();
+                    if (partyState.activeModalGameId === "skribbol") {
+                        applySkribblSettingsUI();
+                    }
+                }
+
+                if (isNewHostMe) {
+                    showToast(`👑 Du bist jetzt der neue Party-Leader! 🎉`);
+                } else {
+                    const newHostName = data.newHostName || "Ein Mitspieler";
+                    showToast(`👑 ${newHostName} ist jetzt Party-Leader.`);
+                }
+            }
             break;
     }
 }
@@ -1248,6 +1381,8 @@ window.renderModalReadiness = function() {
 
     let readyCount = 0;
     const currentId = partyState.currentUser ? partyState.currentUser.id : null;
+    const isHostMe = !!partyState.isHost;
+
     partyState.players.forEach(p => {
         const isReady = p.isReady !== false;
         if (isReady) readyCount++;
@@ -1255,13 +1390,35 @@ window.renderModalReadiness = function() {
         const isMe = p.id === currentId;
         const item = document.createElement("div");
         item.className = "mini-player-item";
+
+        let miniHostBtnHtml = '';
+        if (isHostMe && !isMe) {
+            miniHostBtnHtml = `
+                <button class="mini-transfer-host-btn" type="button" title="${p.name} zum Party-Leader machen">
+                    👑 Leader
+                </button>
+            `;
+        }
+
         item.innerHTML = `
             <div class="mini-avatar ${isReady ? 'is-ready' : ''}" style="border-color: ${p.color || '#6366f1'};">
                 ${p.avatar}
                 <span class="mini-ready-check">${isReady ? '✓' : '…'}</span>
             </div>
             <span class="mini-player-name">${p.name} ${isMe ? '(Du)' : ''} ${p.isHost ? '👑' : ''}</span>
+            ${miniHostBtnHtml}
         `;
+
+        if (isHostMe && !isMe) {
+            const btn = item.querySelector(".mini-transfer-host-btn");
+            if (btn) {
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    transferHostTo(p.id, p.name);
+                });
+            }
+        }
+
         miniContainer.appendChild(item);
     });
 

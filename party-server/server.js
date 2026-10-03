@@ -153,12 +153,20 @@ class Room {
         this.broadcastVotes();
     }
 
-    broadcastVotes() {
+    transferHost(targetPlayerId) {
+        if (!this.players.has(targetPlayerId)) return false;
+        const previousHostId = this.hostId;
+        this.hostId = targetPlayerId;
+        const targetPlayer = this.players.get(targetPlayerId);
+        console.log(`[Room ${this.code}] Host transferred from ${previousHostId} to ${targetPlayer ? targetPlayer.name : targetPlayerId}`);
+        this.broadcastRoster();
         this.broadcast({
-            type: "VOTE_UPDATE",
-            votes: this.votes,
-            isVotingActive: this.isVotingActive
+            type: "HOST_TRANSFERRED",
+            previousHostId: previousHostId,
+            newHostId: targetPlayerId,
+            newHostName: targetPlayer ? targetPlayer.name : "Neuer Host"
         });
+        return true;
     }
 
     broadcastRoster() {
@@ -292,6 +300,18 @@ wss.on('connection', (ws, req) => {
                         gameId: data.gameId,
                         settings: data.settings
                     }, ws);
+                    break;
+                }
+
+                case 'TRANSFER_HOST': {
+                    const senderId = room.socketToPlayerId.get(ws);
+                    if (senderId !== room.hostId) {
+                        console.warn(`[Room ${room.code}] Non-host (${senderId}) tried to transfer host.`);
+                        break;
+                    }
+                    if (data.targetPlayerId) {
+                        room.transferHost(data.targetPlayerId);
+                    }
                     break;
                 }
 
