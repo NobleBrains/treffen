@@ -144,30 +144,55 @@ body {
 }
 
 .room-pill {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    background: var(--accent-yellow);
+    background: var(--bg-surface);
     border: var(--ink-border);
-    padding: 6px 14px;
+    padding: 4px 6px 4px 12px;
     border-radius: var(--radius-pill);
     gap: 8px;
     box-shadow: var(--shadow-doodle);
-    transform: rotate(0.8deg);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.room-pill:hover {
+    transform: translateY(-1px);
+    box-shadow: 3px 3px 0px var(--ink);
+}
+
+.room-code-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    user-select: all;
 }
 
 .room-label {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     font-family: var(--font-heading);
-    color: #1e293b;
-    font-weight: 700;
+    color: var(--ink-light);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .room-code {
     font-weight: 800;
-    letter-spacing: 0.08em;
-    color: #1e293b;
-    font-family: monospace;
-    font-size: 1.15rem;
+    letter-spacing: 0.12em;
+    color: var(--ink);
+    background: var(--accent-yellow);
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1.5px solid var(--ink);
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-size: 1.05rem;
+    box-shadow: 1px 1px 0px var(--ink);
+}
+
+.room-pill-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .icon-btn {
@@ -1382,6 +1407,33 @@ body {
     font-size: 0.95rem;
     letter-spacing: 0.1em;
     color: var(--accent-yellow);
+}
+
+.share-code-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 10px 0 14px;
+    font-family: var(--font-heading);
+}
+
+.share-code-label {
+    color: var(--ink-light);
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.share-code-value {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 1.35rem;
+    letter-spacing: 0.14em;
+    color: var(--primary);
+    background: var(--bg-surface);
+    padding: 3px 10px;
+    border-radius: 8px;
+    border: var(--ink-border);
+    box-shadow: 2px 2px 0px var(--ink);
 }
 
 .share-url-box {

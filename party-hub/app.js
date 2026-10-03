@@ -20,9 +20,33 @@ const ALL_AVATARS = [
     "🐧", "🐻", "🐵", "🐙", "🚀", "👑", "👻", "⚡", "🍕", "🎮"
 ];
 
-// Read room code from URL ?room=... or default to SPIEL-ABEND
+// Generate a clean 6-character alphanumeric party code (avoiding ambiguous characters 0, O, 1, I)
+function generatePartyCode(len = 6) {
+    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let code = "";
+    for (let i = 0; i < len; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
+// Read room code from URL ?room=... or ?code=..., or generate a random 6-character code
 const urlParams = new URLSearchParams(window.location.search);
-const ROOM_CODE = (urlParams.get("room") || "SPIEL-ABEND").toUpperCase();
+let rawCode = (urlParams.get("room") || urlParams.get("code") || "").trim().toUpperCase();
+
+if (!rawCode) {
+    rawCode = generatePartyCode(6);
+    // Keep URL synchronized without full page reload so copying the link from address bar always preserves the code
+    try {
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set("room", rawCode);
+        window.history.replaceState({ room: rawCode }, "", newUrl.toString());
+    } catch (e) {
+        console.warn("Could not update URL state:", e);
+    }
+}
+
+const ROOM_CODE = rawCode;
 
 const STORAGE_KEY_PLAYERS = `partyhub_roster_${ROOM_CODE}`;
 const STORAGE_KEY_USER = `partyhub_user_${ROOM_CODE}`;
@@ -108,9 +132,32 @@ function initUserSession() {
     const roomCodeEl = document.getElementById("roomCodeDisplay");
     if (roomCodeEl) roomCodeEl.innerText = ROOM_CODE;
 
+    const hudRoomCode = document.getElementById("hudRoomCode");
+    if (hudRoomCode) hudRoomCode.innerText = ROOM_CODE;
+
+    const shareModalCode = document.getElementById("shareModalCodeDisplay");
+    if (shareModalCode) shareModalCode.innerText = ROOM_CODE;
+
+    const qrFallbackText = document.getElementById("qrFallbackText");
+    if (qrFallbackText) qrFallbackText.innerText = ROOM_CODE;
+
+    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${ROOM_CODE}`;
     const shareUrlInput = document.getElementById("shareUrlInput");
     if (shareUrlInput) {
-        shareUrlInput.value = `${window.location.origin}${window.location.pathname}?room=${ROOM_CODE}`;
+        shareUrlInput.value = shareUrl;
+    }
+
+    const qrImg = document.getElementById("qrCodeImg");
+    if (qrImg) {
+        qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(shareUrl)}`;
+        qrImg.onload = () => {
+            qrImg.style.display = "block";
+            if (qrFallbackText) qrFallbackText.style.display = "none";
+        };
+        qrImg.onerror = () => {
+            qrImg.style.display = "none";
+            if (qrFallbackText) qrFallbackText.style.display = "block";
+        };
     }
 
     const isJoined = sessionStorage.getItem(STORAGE_KEY_JOINED) === "true";
@@ -506,8 +553,15 @@ function setupFilters() {
 }
 
 function setupEventListeners() {
-    document.getElementById("copyLinkBtn").addEventListener("click", copyShareUrl);
-    document.getElementById("qrCodeBtn").addEventListener("click", openShareModal);
+    const copyLinkBtn = document.getElementById("copyLinkBtn");
+    if (copyLinkBtn) copyLinkBtn.addEventListener("click", copyShareUrl);
+
+    const qrCodeBtn = document.getElementById("qrCodeBtn");
+    if (qrCodeBtn) qrCodeBtn.addEventListener("click", openShareModal);
+
+    const changeRoomBtn = document.getElementById("changeRoomBtn");
+    if (changeRoomBtn) changeRoomBtn.addEventListener("click", openCodeModal);
+
     document.getElementById("toggleVoteBtn").addEventListener("click", toggleVoteMode);
     document.getElementById("closeVoteBtn").addEventListener("click", toggleVoteMode);
     document.getElementById("backToHubBtn").addEventListener("click", exitActiveGame);
@@ -1094,25 +1148,81 @@ window.spinRoulette = function() {
 };
 
 // ==========================================================================
-// Share & QR Modal
+// Share & Code Modals
 // ==========================================================================
 
 window.openShareModal = function() {
-    document.getElementById("shareModal").style.display = "flex";
+    const modal = document.getElementById("shareModal");
+    if (modal) modal.style.display = "flex";
 };
 
 window.closeShareModal = function() {
-    document.getElementById("shareModal").style.display = "none";
+    const modal = document.getElementById("shareModal");
+    if (modal) modal.style.display = "none";
+};
+
+window.openCodeModal = function() {
+    const modal = document.getElementById("codeModal");
+    if (modal) {
+        modal.style.display = "flex";
+        const input = document.getElementById("joinCodeInput");
+        if (input) {
+            input.value = "";
+            setTimeout(() => input.focus(), 50);
+        }
+    }
+};
+
+window.closeCodeModal = function() {
+    const modal = document.getElementById("codeModal");
+    if (modal) modal.style.display = "none";
+};
+
+window.handleCodeSubmit = function(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById("joinCodeInput");
+    const code = (input ? input.value : "").trim().toUpperCase();
+    if (code) {
+        const targetUrl = new URL(window.location.origin + window.location.pathname);
+        targetUrl.searchParams.set("room", code);
+        window.location.href = targetUrl.toString();
+    }
+};
+
+window.generateNewRoomCode = function() {
+    const newCode = generatePartyCode(6);
+    const targetUrl = new URL(window.location.origin + window.location.pathname);
+    targetUrl.searchParams.set("room", newCode);
+    window.location.href = targetUrl.toString();
 };
 
 window.copyShareUrl = function() {
-    const input = document.getElementById("shareUrlInput");
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(input.value);
+    const shareUrl = `${window.location.origin}${window.location.pathname}?room=${ROOM_CODE}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            showToast(`📋 Code ${ROOM_CODE} & Link kopiert!`);
+        }).catch(() => {
+            fallbackCopy(shareUrl);
+        });
+    } else {
+        fallbackCopy(shareUrl);
     }
-    showToast("📋 Einladungslink in die Zwischenablage kopiert!");
     closeShareModal();
 };
+
+function fallbackCopy(text) {
+    const input = document.getElementById("shareUrlInput");
+    if (input) {
+        input.value = text;
+        input.select();
+        try {
+            document.execCommand("copy");
+            showToast(`📋 Code ${ROOM_CODE} & Link kopiert!`);
+        } catch (e) {
+            showToast(`Party-Code: ${ROOM_CODE}`);
+        }
+    }
+}
 
 function showToast(msg) {
     const toast = document.getElementById("toast");

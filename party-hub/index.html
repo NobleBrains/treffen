@@ -18,15 +18,22 @@
                 <img src="assets/logo.jpg" alt="Treffen Mascot" class="logo-doodle-img">
                 <span class="logo-text">Treffen<span class="highlight">.</span></span>
             </div>
-            <div class="room-pill">
-                <span class="room-label">Raum:</span>
-                <span class="room-code" id="roomCodeDisplay">SPIEL-ABEND</span>
-                <button class="icon-btn" id="copyLinkBtn" title="Link in Zwischenablage kopieren">
-                    📋
-                </button>
-                <button class="icon-btn" id="qrCodeBtn" title="QR-Code für Smartphones anzeigen">
-                    📱
-                </button>
+            <div class="room-pill" title="Aktueller Party-Code">
+                <div class="room-code-tag">
+                    <span class="room-label">Code:</span>
+                    <span class="room-code" id="roomCodeDisplay">------</span>
+                </div>
+                <div class="room-pill-actions">
+                    <button class="icon-btn" id="copyLinkBtn" title="Code & Link kopieren">
+                        📋
+                    </button>
+                    <button class="icon-btn" id="qrCodeBtn" title="QR-Code für Smartphones anzeigen">
+                        📱
+                    </button>
+                    <button class="icon-btn" id="changeRoomBtn" title="Code eingeben oder wechseln">
+                        ✏️
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -71,7 +78,7 @@
                 <span class="hud-status">Live mit 5 Freunden</span>
             </div>
             <div class="hud-right">
-                <span class="hud-room">Code: <strong>SPIEL-ABEND</strong></span>
+                <span class="hud-room">Code: <strong id="hudRoomCode">------</strong></span>
             </div>
         </div>
         <div class="game-frame-container">
@@ -293,15 +300,38 @@
             <h2>📱 Treffen beitreten</h2>
             <p>Freunde können einfach diesen QR-Code mit dem Smartphone abscannen oder den Link aufrufen:</p>
             <div class="qr-placeholder">
-                <div class="qr-box">
-                    <div class="qr-pattern"></div>
-                    <span class="qr-text">SPIEL-ABEND</span>
+                <div class="qr-box" id="qrContainer">
+                    <img id="qrCodeImg" alt="Party QR-Code" style="width: 144px; height: 144px; border-radius: 8px; display: none; background: white; padding: 4px;">
+                    <div id="qrFallbackText" class="qr-text" style="display: block;">------</div>
                 </div>
             </div>
+            <div class="share-code-banner">
+                <span class="share-code-label">Party-Code:</span>
+                <strong class="share-code-value" id="shareModalCodeDisplay">------</strong>
+            </div>
             <div class="share-url-box">
-                <input type="text" id="shareUrlInput" value="http://localhost:3000/?room=SPIEL-ABEND" readonly>
+                <input type="text" id="shareUrlInput" value="" readonly>
                 <button class="action-btn-sm" onclick="copyShareUrl()">Kopieren</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Change Room / Enter Code Modal -->
+    <div class="modal-backdrop" id="codeModal" style="display: none;">
+        <div class="modal-card" style="max-width: 400px; text-align: center;">
+            <button class="close-modal-btn" onclick="closeCodeModal()">✕</button>
+            <div style="font-size: 2.4rem; margin-bottom: 8px;">🔑</div>
+            <h2 style="margin-bottom: 6px;">Party-Code eingeben</h2>
+            <p style="color: var(--ink-light); margin-bottom: 16px; font-size: 0.95rem;">
+                Gib den 5- oder 6-stelligen Code deiner Freunde ein:
+            </p>
+            <form onsubmit="handleCodeSubmit(event)" style="display: flex; flex-direction: column; gap: 14px;">
+                <input type="text" id="joinCodeInput" maxlength="12" placeholder="z. B. 7K9PM2" style="font-family: monospace; font-size: 1.3rem; font-weight: 800; text-transform: uppercase; text-align: center; letter-spacing: 0.18em; padding: 10px 14px; border-radius: 12px; border: var(--ink-border); box-shadow: 2px 2px 0px var(--ink); color: var(--ink); background: var(--bg-surface);" required autofocus>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button type="submit" class="action-btn-sm" style="flex: 2; padding: 10px 16px; font-size: 1rem;">🚀 Beitreten</button>
+                    <button type="button" class="action-btn-sm" onclick="generateNewRoomCode()" style="flex: 1; background: var(--bg-surface); color: var(--ink); border: var(--ink-border); padding: 10px 12px; font-size: 0.9rem;" title="Neuen zufälligen Code erzeugen">🎲 Neu</button>
+                </div>
+            </form>
         </div>
     </div>
 
