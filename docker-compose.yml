@@ -12,6 +12,10 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+      - "3443:443"
+    volumes:
+      - ./party-hub:/usr/share/nginx/html:ro
+      - ./letsencrypt:/etc/letsencrypt:ro
     networks:
       - party-net
 

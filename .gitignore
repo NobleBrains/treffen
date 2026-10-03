@@ -11,6 +11,8 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+letsencrypt/
+.well-known/
 
 # Logs
 *.log
