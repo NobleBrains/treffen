@@ -1168,7 +1168,8 @@ body {
 }
 
 .green-text {
-    color: #15803d;
+    color: var(--accent-green, #16a34a);
+    font-weight: 800;
 }
 
 .player-mini-avatars {
@@ -1454,28 +1455,116 @@ body {
 @media (max-width: 768px) {
     .party-header {
         height: auto;
-        padding: 12px 16px;
+        padding: 10px 14px;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
     }
 
-    .header-left, .header-right {
+    .header-left {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .logo {
+        font-size: 1.55rem;
+        gap: 8px;
+    }
+
+    .logo-doodle-img {
+        width: 38px;
+        height: 38px;
+    }
+
+    .room-pill {
+        padding: 4px 10px;
+        gap: 6px;
+        font-size: 0.9rem;
+    }
+
+    .room-code {
+        font-size: 1rem;
+    }
+
+    .icon-btn {
+        padding: 3px 6px;
+        font-size: 0.85rem;
+    }
+
+    .header-right {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .theme-picker-wrapper {
+        flex: 1 1 auto;
+        min-width: 130px;
+    }
+
+    .theme-dropdown-btn {
+        padding: 6px 10px;
+        font-size: 0.85rem;
+        gap: 5px;
         width: 100%;
         justify-content: space-between;
     }
 
+    .theme-dropdown-menu {
+        position: fixed;
+        top: 90px;
+        left: 14px;
+        right: 14px;
+        width: auto;
+        max-width: calc(100vw - 28px);
+        max-height: 70vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.65);
+        z-index: 2000;
+    }
+
+    .action-btn.vote-mode-btn {
+        padding: 6px 12px;
+        font-size: 0.88rem;
+    }
+
+    .user-badge {
+        padding: 4px 10px 4px 6px;
+        gap: 8px;
+    }
+
+    .avatar-small {
+        width: 32px;
+        height: 32px;
+        font-size: 1.15rem;
+    }
+
+    .user-name {
+        font-size: 0.88rem;
+    }
+
+    .user-role {
+        font-size: 0.7rem;
+    }
+
     .living-room-container {
-        padding: 16px 14px 48px 14px;
-        gap: 22px;
+        padding: 14px 12px 48px 12px;
+        gap: 18px;
     }
 
     .couch-section {
-        padding: 16px 14px;
+        padding: 14px 12px;
     }
 
     .player-roster {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 8px;
     }
 
     .player-card {
@@ -1484,41 +1573,111 @@ body {
     }
 
     .player-card-avatar {
-        width: 38px;
-        height: 38px;
+        width: 36px;
+        height: 36px;
         font-size: 1.2rem;
     }
 
     .player-card-name {
-        font-size: 0.95rem;
+        font-size: 0.92rem;
+    }
+
+    .player-card-tag {
+        font-size: 0.76rem;
     }
 
     .games-grid {
         grid-template-columns: 1fr;
-        gap: 18px;
+        gap: 16px;
     }
 
     .card-media {
-        height: 160px;
+        height: 150px;
     }
 
     .mode-options {
         grid-template-columns: 1fr;
     }
 
+    /* Active Game Overlay HUD on Mobile */
+    .game-hud {
+        height: 48px;
+        padding: 0 12px;
+    }
+
+    .hud-btn.back-to-hub {
+        padding: 4px 10px;
+        font-size: 0.85rem;
+    }
+
+    .hud-game-title {
+        font-size: 1rem;
+    }
+
+    .hud-status {
+        display: none;
+    }
+
+    .hud-right {
+        display: none;
+    }
+
+    /* Modals & Ready Check on Mobile */
     .modal-card {
-        padding: 20px;
+        width: calc(100vw - 24px);
+        max-width: 100%;
+        padding: 16px 14px;
         max-height: 90vh;
         overflow-y: auto;
+    }
+
+    .ready-banner {
+        padding: 10px 12px;
+        gap: 10px;
+    }
+
+    .ready-title {
+        font-size: 0.95rem;
+    }
+
+    .ready-toggle-btn {
+        width: 100%;
+        justify-content: center;
+        padding: 8px 12px;
+        font-size: 0.92rem;
+    }
+
+    .party-readiness-box {
+        padding: 10px 12px;
+    }
+
+    .player-mini-avatars {
+        gap: 10px;
+    }
+
+    .mini-avatar {
+        width: 34px;
+        height: 34px;
+        font-size: 1.1rem;
     }
 
     .modal-footer {
         flex-direction: column;
         width: 100%;
+        gap: 8px;
     }
 
     .btn-secondary, .btn-primary-launch {
         width: 100%;
         text-align: center;
+    }
+
+    .countdown-card {
+        padding: 24px 16px;
+        width: calc(100vw - 32px);
+    }
+
+    .countdown-number {
+        font-size: 4rem;
     }
 }
