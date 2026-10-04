@@ -169,6 +169,23 @@ class Room {
         return true;
     }
 
+    isSenderHost(ws, data) {
+        const senderId = this.socketToPlayerId.get(ws) || (data && (data.userId || data.playerId));
+        if (!senderId) return false;
+        if (senderId === this.hostId) return true;
+        const player = this.players.get(senderId);
+        if (player && player.isHost) {
+            this.hostId = senderId;
+            return true;
+        }
+        if (!this.hostId && this.players.size > 0) {
+            this.hostId = senderId;
+            if (player) player.isHost = true;
+            return true;
+        }
+        return false;
+    }
+
     broadcastRoster() {
         const playerList = Array.from(this.players.values()).sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
         playerList.forEach(p => {
@@ -263,23 +280,25 @@ wss.on('connection', (ws, req) => {
                     break;
 
                 case 'OPEN_GAME_MODAL': {
-                    const senderId = room.socketToPlayerId.get(ws);
-                    if (senderId !== room.hostId) {
-                        console.warn(`[Room ${room.code}] Non-host (${senderId}) tried to open game modal.`);
+                    if (!room.isSenderHost(ws, data)) {
+                        console.warn(`[Room ${room.code}] Non-host tried to open game modal.`);
                         break;
                     }
                     room.activeModalGameId = data.gameId;
+                    if (data.lobbyId) {
+                        room.activeLobbyId = data.lobbyId;
+                    }
                     room.broadcast({
                         type: 'OPEN_GAME_MODAL',
                         gameId: data.gameId,
+                        lobbyId: data.lobbyId || null,
                         initiatedBy: data.initiatedBy
                     }, ws);
                     break;
                 }
 
                 case 'CLOSE_GAME_MODAL': {
-                    const senderId = room.socketToPlayerId.get(ws);
-                    if (senderId !== room.hostId) {
+                    if (!room.isSenderHost(ws, data)) {
                         break;
                     }
                     room.activeModalGameId = null;
@@ -288,9 +307,8 @@ wss.on('connection', (ws, req) => {
                 }
 
                 case 'GAME_SETTINGS_UPDATE': {
-                    const senderId = room.socketToPlayerId.get(ws);
-                    if (senderId !== room.hostId) {
-                        console.warn(`[Room ${room.code}] Non-host (${senderId}) tried to update game settings.`);
+                    if (!room.isSenderHost(ws, data)) {
+                        console.warn(`[Room ${room.code}] Non-host tried to update game settings.`);
                         break;
                     }
                     if (!room.gameSettings) room.gameSettings = {};
@@ -304,9 +322,8 @@ wss.on('connection', (ws, req) => {
                 }
 
                 case 'TRANSFER_HOST': {
-                    const senderId = room.socketToPlayerId.get(ws);
-                    if (senderId !== room.hostId) {
-                        console.warn(`[Room ${room.code}] Non-host (${senderId}) tried to transfer host.`);
+                    if (!room.isSenderHost(ws, data)) {
+                        console.warn(`[Room ${room.code}] Non-host tried to transfer host.`);
                         break;
                     }
                     if (data.targetPlayerId) {
@@ -324,10 +341,13 @@ wss.on('connection', (ws, req) => {
                     break;
 
                 case 'LAUNCH_GAME': {
-                    const senderId = room.socketToPlayerId.get(ws);
-                    if (senderId !== room.hostId) {
-                        console.warn(`[Room ${room.code}] Non-host (${senderId}) tried to launch game.`);
+                    if (!room.isSenderHost(ws, data)) {
+                        console.warn(`[Room ${room.code}] Non-host tried to launch game.`);
                         break;
+                    }
+                    const senderId = room.socketToPlayerId.get(ws) || (data && (data.userId || data.playerId));
+                    if (senderId) {
+                        room.hostId = senderId;
                     }
                     room.activeGame = {
                         gameId: data.gameId,
@@ -338,16 +358,17 @@ wss.on('connection', (ws, req) => {
                         type: 'LAUNCH_GAME',
                         gameId: data.gameId,
                         lobbyId: data.lobbyId || null
-                    }, ws);
+                    });
+                    room.broadcastRoster();
                     break;
                 }
 
                 case 'EXIT_GAME': {
-                    const senderId = room.socketToPlayerId.get(ws);
-                    if (senderId === room.hostId) {
+                    if (room.isSenderHost(ws, data)) {
                         room.activeModalGameId = null;
                         room.activeGame = null;
-                        room.broadcast({ type: 'EXIT_GAME' }, ws);
+                        room.broadcast({ type: 'EXIT_GAME' });
+                        room.broadcastRoster();
                     }
                     break;
                 }

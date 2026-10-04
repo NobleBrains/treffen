@@ -323,9 +323,10 @@ window.handleJoinSubmit = function(e) {
     const nickname = input && input.value.trim() ? input.value.trim() : "Gast";
     const avatar = tempJoinAvatar || "🐶";
 
+    const hasServerHost = partyState.players && partyState.players.some(p => p.isHost);
     let roster = getRosterFromStorage();
-    const hasActiveHost = Object.values(roster).some(p => p.isHost);
-    const isHost = !hasActiveHost || Object.keys(roster).length === 0;
+    const hasActiveHost = hasServerHost || Object.values(roster).some(p => p.isHost);
+    const isHost = !hasActiveHost && Object.keys(roster).length === 0 && (!partyState.players || partyState.players.length === 0);
 
     const preset = AVATAR_POOL.find(p => p.name.toLowerCase() === nickname.toLowerCase() || p.avatar === avatar);
     const color = preset ? preset.color : "#6366f1";
@@ -838,6 +839,30 @@ function handleServerMessage(data) {
                         applySkribblSettingsUI();
                     }
                 }
+
+                if (data.activeGame && data.activeGame.gameId) {
+                    if (data.activeGame.lobbyId) {
+                        partyState.currentLobbyId = data.activeGame.lobbyId;
+                    }
+                    const overlay = document.getElementById("activeGameOverlay");
+                    const isOverlayActive = overlay && overlay.classList.contains("active");
+                    const iframe = document.getElementById("gameIframe");
+
+                    if (isOverlayActive && iframe && data.activeGame.gameId === "skribbol" && data.activeGame.lobbyId) {
+                        const expectedLobbyPath = `/skribbl/lobby/${data.activeGame.lobbyId}`;
+                        if (!iframe.src.includes(expectedLobbyPath)) {
+                            console.log("Updating iframe src to active Skribbl lobby:", expectedLobbyPath);
+                            const userName = partyState.currentUser ? partyState.currentUser.name : "Gast";
+                            const skribblSession = getSkribblUserSession();
+                            iframe.src = `${expectedLobbyPath}?username=${encodeURIComponent(userName)}&usersession=${skribblSession}`;
+                        }
+                    } else if (!isOverlayActive && sessionStorage.getItem(STORAGE_KEY_JOINED) === "true") {
+                        const game = partyState.games[data.activeGame.gameId];
+                        if (game) {
+                            executeCountdownAndLaunch(game, data.activeGame.lobbyId);
+                        }
+                    }
+                }
             }
             break;
 
@@ -864,6 +889,9 @@ function handleServerMessage(data) {
 
         case "OPEN_GAME_MODAL":
             if (data.gameId && partyState.games[data.gameId]) {
+                if (data.lobbyId) {
+                    partyState.currentLobbyId = data.lobbyId;
+                }
                 showModalUI(data.gameId);
                 if (data.initiatedBy && partyState.currentUser && data.initiatedBy !== partyState.currentUser.name) {
                     showToast(`🔔 ${data.initiatedBy} lädt zu ${partyState.games[data.gameId].title} ein!`);
@@ -1297,10 +1325,16 @@ window.openGameModal = function(gameId) {
         showToast("⚠️ Nur der Party-Leader kann ein Spiel auswählen!");
         return;
     }
+    if (gameId === "skribbol" && !partyState.currentLobbyId) {
+        partyState.currentLobbyId = generateUUID();
+    }
     showModalUI(gameId);
     broadcast({
         type: "OPEN_GAME_MODAL",
+        room: ROOM_CODE,
         gameId: gameId,
+        lobbyId: partyState.currentLobbyId,
+        userId: partyState.currentUser ? partyState.currentUser.id : null,
         initiatedBy: partyState.currentUser ? partyState.currentUser.name : "Party-Host"
     });
 };
@@ -1475,7 +1509,7 @@ window.launchCurrentGame = async function() {
 
     let lobbyId = null;
     if (gameId === "skribbol") {
-        lobbyId = generateUUID();
+        lobbyId = partyState.currentLobbyId || generateUUID();
         partyState.currentLobbyId = lobbyId;
         const hostName = partyState.currentUser ? partyState.currentUser.name : "Party-Host";
 
@@ -1488,8 +1522,10 @@ window.launchCurrentGame = async function() {
 
     broadcast({
         type: "LAUNCH_GAME",
+        room: ROOM_CODE,
         gameId: gameId,
-        lobbyId: lobbyId
+        lobbyId: lobbyId,
+        userId: partyState.currentUser ? partyState.currentUser.id : null
     });
 
     executeCountdownAndLaunch(game, lobbyId);
@@ -1548,7 +1584,10 @@ function getGameUrl(game, lobbyId) {
         if (id) {
             return `/skribbl/lobby/${id}?username=${encodeURIComponent(userName)}&usersession=${skribblSession}`;
         }
-        return `/skribbl/?username=${encodeURIComponent(userName)}&usersession=${skribblSession}`;
+        // Fallback: Never send party guests to /skribbl/ (isolated lobby creation screen)!
+        // Use a deterministic room-scoped lobby id so all guests automatically join the party lobby:
+        const fallbackRoomLobby = `room-${ROOM_CODE.toLowerCase()}`;
+        return `/skribbl/lobby/${fallbackRoomLobby}?username=${encodeURIComponent(userName)}&usersession=${skribblSession}`;
     } else if (game.id === "uno") {
         return `/uno/?lobby=${encodeURIComponent(ROOM_CODE)}&name=${encodeURIComponent(userName)}`;
     } else if (game.id === "codenames") {
