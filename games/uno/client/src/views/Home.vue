@@ -369,8 +369,9 @@ export default {
       observer.observe(this.$refs.options);
     }
 
-    const roomCode = this.$route.query.room || this.$route.query.lobby;
-    const name = this.$route.query.name || this.$route.query.username;
+    const urlParams = typeof window !== "undefined" && window.location ? new URLSearchParams(window.location.search) : null;
+    const roomCode = this.$route.query.room || this.$route.query.lobby || (urlParams ? (urlParams.get("room") || urlParams.get("lobby")) : "");
+    const name = this.$route.query.name || this.$route.query.username || (urlParams ? (urlParams.get("name") || urlParams.get("username")) : "");
     if (name) {
       this.joinRoomForm.username = name;
       this.createRoomForm.username = name;

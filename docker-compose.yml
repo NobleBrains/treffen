@@ -63,6 +63,8 @@ services:
     restart: unless-stopped
     environment:
       - PORT=8085
+    volumes:
+      - ./games/uno/client:/app/client:ro
     ports:
       - "8085:8085"
     networks:
