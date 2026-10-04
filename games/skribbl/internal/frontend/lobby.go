@@ -83,6 +83,16 @@ func (handler *SSRHandler) ssrEnterLobbyNoChecks(
 	var pageData *lobbyPageData
 	lobby.Synchronized(func() {
 		player := getPlayer()
+		reqUsername := api.GetPlayername(request)
+
+		// If a player was retrieved via cookie/session, but that player is already connected
+		// with an active WebSocket in another tab, OR the username in the request is different
+		// from the existing player's username:
+		// Do not block with "lobby-open-tab-exists" or hijack the existing player.
+		// Instead, allow joining as a new player for this tab/user.
+		if player != nil && (player.Connected && player.GetWebsocket() != nil || (reqUsername != "" && player.Name != reqUsername)) {
+			player = nil
+		}
 
 		if player == nil {
 			if !lobby.HasFreePlayerSlot() {
@@ -95,15 +105,11 @@ func (handler *SSRHandler) ssrEnterLobbyNoChecks(
 				return
 			}
 
-			player = lobby.JoinPlayer(api.GetPlayername(request))
+			player = lobby.JoinPlayer(reqUsername)
 
 			player.SetLastKnownAddress(requestAddress)
 			api.SetGameplayCookies(writer, request, player, lobby)
 		} else {
-			if player.Connected && player.GetWebsocket() != nil {
-				handler.userFacingError(writer, translation.Get("lobby-open-tab-exists"), translation)
-				return
-			}
 			player.SetLastKnownAddress(requestAddress)
 			api.SetGameplayCookies(writer, request, player, lobby)
 		}

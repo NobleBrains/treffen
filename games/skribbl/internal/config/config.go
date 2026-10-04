@@ -85,7 +85,7 @@ var Default = Config{
 		Rounds:             "4",
 		MaxPlayers:         "24",
 		CustomWordsPerTurn: "3",
-		ClientsPerIPLimit:  "2",
+		ClientsPerIPLimit:  "24",
 		Language:           "german",
 		ScoreCalculation:   "chill",
 		WordsPerTurn:       "3",

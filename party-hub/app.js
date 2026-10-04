@@ -1526,14 +1526,29 @@ function executeCountdownAndLaunch(game, lobbyId) {
     }, 800);
 }
 
+function getSkribblUserSession() {
+    let session = sessionStorage.getItem("skribbl_tab_session");
+    if (!session) {
+        session = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+        try {
+            sessionStorage.setItem("skribbl_tab_session", session);
+        } catch (e) {}
+    }
+    return session;
+}
+
 function getGameUrl(game, lobbyId) {
     const userName = partyState.currentUser ? partyState.currentUser.name : "Gast";
     if (game.id === "skribbol") {
         const id = lobbyId || partyState.currentLobbyId;
+        const skribblSession = getSkribblUserSession();
         if (id) {
-            return `/skribbl/lobby/${id}?username=${encodeURIComponent(userName)}`;
+            return `/skribbl/lobby/${id}?username=${encodeURIComponent(userName)}&usersession=${skribblSession}`;
         }
-        return `/skribbl/?username=${encodeURIComponent(userName)}`;
+        return `/skribbl/?username=${encodeURIComponent(userName)}&usersession=${skribblSession}`;
     } else if (game.id === "uno") {
         return `/uno/?lobby=${encodeURIComponent(ROOM_CODE)}&name=${encodeURIComponent(userName)}`;
     } else if (game.id === "codenames") {

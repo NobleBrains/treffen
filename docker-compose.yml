@@ -47,6 +47,7 @@ services:
     restart: unless-stopped
     environment:
       - ROOT_PATH=/skribbl
+      - CLIENTS_PER_IP_LIMIT=24
     ports:
       - "8080:8080"
     networks:

@@ -487,10 +487,10 @@ func CreateLobbyData(cfg *config.Config, lobby *game.Lobby) *LobbyData {
 // the header. If no session can be found, an empty string is returned.
 func GetUserSession(request *http.Request) (uuid.UUID, error) {
 	var userSession string
-	if sessionCookie, err := request.Cookie("usersession"); err == nil && sessionCookie.Value != "" {
-		userSession = sessionCookie.Value
-	} else if querySession := request.URL.Query().Get("usersession"); querySession != "" {
+	if querySession := request.URL.Query().Get("usersession"); querySession != "" {
 		userSession = querySession
+	} else if sessionCookie, err := request.Cookie("usersession"); err == nil && sessionCookie.Value != "" {
+		userSession = sessionCookie.Value
 	} else {
 		userSession = request.Header.Get("Usersession")
 	}
