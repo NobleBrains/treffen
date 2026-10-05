@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Monopoly 3D - Wii Edition</title>
+    <link rel="stylesheet" href="static/css/style.css?v=2.5">
+    <link rel="icon" href="static/assets/textures/board_wt_cl_go_cm.png">
+    <script>
+        (function() {
+            var p = new URLSearchParams(window.location.search);
+            var r = p.get('room') || p.get('lobby') || p.get('party') || p.get('roomId');
+            if (!r) {
+                r = Math.random().toString(36).substring(2, 8).toUpperCase();
+                var newUrl = window.location.pathname + '?room=' + r;
+                try { window.history.replaceState({ path: newUrl }, '', newUrl); } catch(e) {}
+            }
+            window.__INITIAL_ROOM_ID__ = r.toUpperCase();
+        })();
+    </script>
+</head>
+<body>
+    <!-- 3D Canvas Viewport (Board + Physical 3D Table) -->
+    <div id="canvas-container"></div>
+
+    <!-- Floating Return Button for Seat Nahansicht -->
+    <div id="seat-focus-bar" class="seat-focus-bar" style="display:none;">
+        <button class="btn-leave-seat-focus" onclick="window.MonopolyBoard3D.exitSeatFocus()">
+            <span class="seat-focus-icon">↩</span> Zurück zur Brettansicht
+        </button>
+    </div>
+
+    <!-- UI Overlay Layer (Minimalist 2012 Console Aesthetic) -->
+    <div id="ui-root">
+        <!-- Top Game Header Bar -->
+        <header class="game-header interactive">
+            <div class="brand-section">
+                <div class="brand-badge">MONOPOLY</div>
+                <div class="room-chip" id="btn-copy-link" title="Klicke zum Kopieren des Einladungslinks">
+                    <span>Raum:</span>
+                    <strong class="code" id="header-room-code"><script>document.write(window.__INITIAL_ROOM_ID__ || '------');</script></strong>
+                    <span style="margin-left:4px; font-size:12px;">📋</span>
+                </div>
+            </div>
+
+            <!-- Top Center: 2012 Console Player HUD Strip (Authentic 4-Player Pods) -->
+            <div class="top-player-hud" id="top-player-hud">
+                <!-- Dynamically populated player pods with token, name, cash -->
+            </div>
+
+            <!-- Header Right: Camera & Quick Tools -->
+            <div class="header-tools">
+                <div class="cam-toggle-group">
+                    <button class="btn-cam" id="btn-cam-2d" title="2D Draufsicht (Top-Down, Mobil)">2D</button>
+                    <button class="btn-cam" id="btn-cam-25d" title="2.5D Schrägansicht (Tisch-Modus)">2.5D</button>
+                    <button class="btn-cam" id="btn-cam-3d" title="3D Freie Kamera (Drehen & Zoomen)">3D</button>
+                </div>
+                <button class="btn-icon" id="btn-rot-left" title="Brett 90° nach links drehen">↺</button>
+                <button class="btn-icon" id="btn-rot-right" title="Brett 90° nach rechts drehen">↻</button>
+                <button class="btn-icon" id="btn-toggle-logs" title="Spielprotokoll & Chat">📜</button>
+                <button class="btn-icon" id="btn-sound-toggle" title="Ton stummschalten">🔊</button>
+            </div>
+        </header>
+
+        <!-- Right Side: Collapsible Activity Logs & Chat Drawer -->
+        <aside class="logs-panel interactive" id="logs-panel">
+            <div class="logs-header">
+                <span>📜 Spielprotokoll & Chat</span>
+                <button class="modal-close" id="btn-close-logs" style="font-size:16px;">✕</button>
+            </div>
+            <div class="logs-list" id="logs-list">
+                <div class="log-entry">Willkommen am 3D Monopoly-Tisch!</div>
+            </div>
+            <div class="chat-input-bar">
+                <input type="text" id="chat-input" class="chat-input" placeholder="Nachricht an Mitspieler..." maxlength="100">
+                <button id="chat-send-btn" class="chat-send-btn">➤</button>
+            </div>
+        </aside>
+
+        <!-- Minimalist Floating Bottom Dock (Action Cockpit) -->
+        <footer class="bottom-floating-dock interactive">
+            <div class="cockpit-wallet" id="dock-wallet" onclick="if(window.MonopolyGame && window.MonopolyGame.showPlayerPortfolio) window.MonopolyGame.showPlayerPortfolio(window.MonopolyGame.getMyPlayerId ? window.MonopolyGame.getMyPlayerId() : null);" title="Klicke für Besitzverwaltung & Finanzen">
+                <span class="cockpit-wallet-icon">💵</span>
+                <div class="cockpit-wallet-text">
+                    <span class="cockpit-wallet-label">Konto</span>
+                    <span class="cockpit-wallet-amount" id="dock-money">1.500 DM</span>
+                </div>
+                <span class="cockpit-wallet-delta" id="dock-money-delta"></span>
+            </div>
+            <div class="action-buttons-wrap">
+                <button class="btn-action btn-roll" id="btn-roll" disabled>
+                    <span>🎲</span>
+                    <span>Würfeln</span>
+                </button>
+                <button class="btn-action btn-buy" id="btn-buy" style="display:none;">
+                    <span>🏠</span>
+                    <span>Kaufen</span>
+                </button>
+                <button class="btn-action btn-bail" id="btn-bail" style="display:none; background:#e74c3c; color:#fff;">
+                    <span>👮 Kaution (50 DM)</span>
+                </button>
+                <button class="btn-action btn-jail-card" id="btn-jail-card" style="display:none; background:#3498db; color:#fff;">
+                    <span>🃏 Gefängnisfrei</span>
+                </button>
+                <button class="btn-action btn-trade" id="btn-trade">
+                    <span>🤝</span>
+                    <span>Handeln</span>
+                </button>
+                <button class="btn-action btn-portfolio" id="btn-portfolio" title="Deinen Besitz verwalten">
+                    <span>📋</span>
+                    <span>Besitz</span>
+                </button>
+                <button class="btn-action btn-end" id="btn-end-turn" disabled>
+                    <span>⏹️</span>
+                    <span>Zug beenden</span>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modals -->
+
+    <!-- 1. Lobby Modal -->
+    <div class="modal-overlay open" id="modal-lobby">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-title">Monopoly Spiellobby</div>
+                <div class="room-chip" style="cursor:default;">
+                    <span>Raum: <strong id="lobby-room-code"><script>document.write(window.__INITIAL_ROOM_ID__ || '------');</script></strong></span>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">DEIN SPIELERNAME</label>
+                    <input type="text" id="input-player-name" class="chat-input" style="font-size:15px; padding:10px;" maxlength="18" placeholder="Name eingeben...">
+                </div>
+
+                <div>
+                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:8px;">WÄHLE DEINE 3D-SPIELFIGUR</label>
+                    <div class="lobby-token-grid" id="lobby-token-grid">
+                        <!-- Tokens populated by JS -->
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:8px;">SPIELERFARBE</label>
+                    <div class="color-palette-row" id="color-palette-row">
+                        <!-- Colors populated by JS -->
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:6px;">MITSPIELER IM RAUM</label>
+                    <div class="lobby-players-list" id="lobby-players-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <div class="lobby-actions">
+                    <button class="btn-action btn-buy" id="btn-start-game" style="width:100%; font-size:16px;">
+                        🎮 Spiel starten
+                    </button>
+                    <button class="btn-action btn-trade" id="btn-add-bot" style="width:100%;">
+                        🤖 Bot-Spieler hinzufügen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Authentic High-Res Deed Card Modal (Extracted German ROM Card) -->
+    <div class="modal-overlay" id="modal-deed">
+        <div class="modal-box" style="max-width:390px;">
+            <div class="modal-header">
+                <span class="modal-title" id="deed-modal-title">Besitzrecht-Urkunde</span>
+                <button class="modal-close" onclick="window.MonopolyGame.closeModal('modal-deed')">✕</button>
+            </div>
+            <div class="modal-body">
+                <!-- Authentic Deed Card Image Display -->
+                <div class="deed-card-container">
+                    <img id="deed-card-img" class="deed-card-graphic" src="" alt="Urkunde" />
+                    <div id="deed-mortgage-stamp" class="mortgage-stamp" style="display:none;">HYPOTHEK</div>
+                </div>
+
+                <!-- Owner Information -->
+                <div class="deed-owner-strip" id="deed-owner-strip">
+                    <span id="deed-owner-text">Zu verkaufen</span>
+                    <span id="deed-houses-text"></span>
+                </div>
+
+                <!-- House & Mortgage Actions -->
+                <div class="deed-actions" id="deed-actions">
+                    <button class="btn-action btn-buy" id="btn-build-house" style="display:none;">
+                        🏠 Haus bauen (<span id="build-cost">0</span> DM)
+                    </button>
+                    <button class="btn-action" id="btn-sell-house" style="display:none; background:#d35400; color:#fff;">
+                        🏚️ Haus verkaufen
+                    </button>
+                    <button class="btn-action" id="btn-mortgage" style="background:#7f8c8d; color:#fff;">
+                        📜 Hypothek aufnehmen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Chance / Community Chest Card Modal -->
+    <div class="modal-overlay" id="modal-card">
+        <div class="modal-box" style="max-width:380px;">
+            <div class="chance-chest-card" id="card-modal-container">
+                <div class="chance-card-type" id="card-modal-title">EREIGNISKARTE</div>
+                <div class="card-illustration-wrap">
+                    <img id="card-modal-img" class="card-illustration-img" src="static/assets/chance_chest/illustration_monopoly_mann.png" alt="Monopoly Mann" />
+                </div>
+                <div class="chance-card-text" id="card-modal-text">Ziehe vor bis auf LOS!</div>
+                <button class="btn-action btn-buy" style="margin-top:14px; width:100%;" onclick="window.MonopolyGame.closeModal('modal-card')">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Player Portfolio Modal / Drawer -->
+    <div class="modal-overlay" id="modal-portfolio">
+        <div class="modal-box" style="max-width:540px;">
+            <div class="modal-header">
+                <span class="modal-title" id="portfolio-modal-title">Vermögen & Grundstücke</span>
+                <button class="modal-close" onclick="window.MonopolyGame.closeModal('modal-portfolio')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="portfolio-grid" id="portfolio-grid">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Trade Builder Modal -->
+    <div class="modal-overlay" id="modal-trade">
+        <div class="modal-box" style="max-width:520px;">
+            <div class="modal-header">
+                <span class="modal-title">Handel vorschlagen</span>
+                <button class="modal-close" onclick="window.MonopolyGame.closeModal('modal-trade')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div>
+                    <label style="font-size:12px; font-weight:700; color:var(--text-muted); display:block; margin-bottom:4px;">HANDELSPARTNER</label>
+                    <select id="trade-partner-select" class="chat-input" style="font-size:14px; padding:8px; width:100%;"></select>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-top:8px;">
+                    <div>
+                        <strong style="font-size:13px; color:var(--primary);">Dein Angebot:</strong>
+                        <div style="margin:6px 0;">
+                            <label style="font-size:11px; color:#aaa;">Geld (DM):</label>
+                            <input type="number" id="trade-offer-money" class="chat-input" min="0" step="10" value="0" style="width:100%; padding:4px 6px;">
+                        </div>
+                        <div style="font-size:11px; color:#aaa; margin-bottom:4px;">Grundstücke:</div>
+                        <div id="trade-my-props" style="max-height:160px; overflow-y:auto; background:rgba(0,0,0,0.2); padding:6px; border-radius:6px;"></div>
+                    </div>
+                    <div>
+                        <strong style="font-size:13px; color:var(--accent-red);">Deine Forderung:</strong>
+                        <div style="margin:6px 0;">
+                            <label style="font-size:11px; color:#aaa;">Geld (DM):</label>
+                            <input type="number" id="trade-req-money" class="chat-input" min="0" step="10" value="0" style="width:100%; padding:4px 6px;">
+                        </div>
+                        <div style="font-size:11px; color:#aaa; margin-bottom:4px;">Grundstücke:</div>
+                        <div id="trade-target-props" style="max-height:160px; overflow-y:auto; background:rgba(0,0,0,0.2); padding:6px; border-radius:6px;"></div>
+                    </div>
+                </div>
+                <button class="btn-action btn-trade" id="btn-submit-trade" style="width:100%; margin-top:12px;">
+                    Handelsangebot absenden
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Incoming Trade Modal -->
+    <div class="modal-overlay" id="modal-incoming-trade">
+        <div class="modal-box" style="max-width:420px;">
+            <div class="modal-header">
+                <span class="modal-title">Eingehendes Handelsangebot</span>
+            </div>
+            <div class="modal-body" id="incoming-trade-body">
+                <!-- Dynamically injected -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts with Cache Busting -->
+    <script src="static/js/three.min.js"></script>
+    <script src="static/js/OrbitControls.js"></script>
+    <script src="static/js/audio.js"></script>
+    <script src="static/js/board3d.js?v=2.8"></script>
+    <script src="static/js/game_client.js?v=2.8"></script>
+
+    <script>
+        function launchMonopoly() {
+            console.log('Starting Monopoly Web Edition...');
+            try {
+                if (window.MonopolyGame) {
+                    window.MonopolyGame.init();
+                }
+            } catch (err) {
+                console.error('MonopolyGame.init error:', err);
+            }
+            try {
+                if (window.MonopolyBoard3D) {
+                    window.MonopolyBoard3D.init('canvas-container');
+                }
+            } catch (err) {
+                console.error('MonopolyBoard3D.init error:', err);
+            }
+        }
+
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            launchMonopoly();
+        } else {
+            window.addEventListener('DOMContentLoaded', launchMonopoly);
+        }
+    </script>
+</body>
+</html>

@@ -188,6 +188,15 @@ const partyState = {
             maxPlayers: 12,
             desc: "Errate die Preise von echten Produkten! Klassischer Schätzmodus, Höher oder Niedriger (This or That) und Echtzeit-Mehrspieler mit Freunden.",
             embedUrl: "/price-guess/"
+        },
+        monopoly: {
+            id: "monopoly",
+            title: "Monopoly 3D",
+            icon: "🎩",
+            minPlayers: 2,
+            maxPlayers: 8,
+            desc: "Der legendäre Brettspiel-Klassiker in 3D mit deutscher 2012 ROM-Ausstattung, Straßenhandel, Häuserbau und Computergegnern!",
+            embedUrl: "/monopoly/"
         }
     },
     isVotingActive: false,
@@ -195,7 +204,8 @@ const partyState = {
         skribbol: 0,
         uno: 0,
         codenames: 0,
-        price_guess: 0
+        price_guess: 0,
+        monopoly: 0
     },
     userVotedGame: null,
     activeModalGameId: null,
@@ -1593,7 +1603,7 @@ function getGameUrl(game, lobbyId) {
     } else if (game.id === "codenames") {
         return `/codenames/g/${encodeURIComponent(ROOM_CODE)}?name=${encodeURIComponent(userName)}`;
     } else if (game.id === "monopoly") {
-        return `/monopoly/?name=${encodeURIComponent(userName)}`;
+        return `/monopoly/?room=${encodeURIComponent(ROOM_CODE)}&name=${encodeURIComponent(userName)}`;
     } else if (game.id === "price_guess") {
         return `/price-guess/`;
     }
@@ -1797,7 +1807,7 @@ window.spinRoulette = function() {
         showToast("⚠️ Nur der Party-Leader kann das Roulette drehen!");
         return;
     }
-    const available = ["skribbol", "uno", "codenames", "price_guess"];
+    const available = ["skribbol", "uno", "codenames", "price_guess", "monopoly"];
     const pick = available[Math.floor(Math.random() * available.length)];
     const chosenGame = partyState.games[pick];
 

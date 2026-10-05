@@ -1,0 +1,307 @@
+import os
+import sys
+import json
+import uuid
+import asyncio
+from pathlib import Path
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from typing import Dict, Set
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+SERVER_DIR = Path(__file__).resolve().parent
+if str(SERVER_DIR) not in sys.path:
+    sys.path.insert(0, str(SERVER_DIR))
+STATIC_DIR = BASE_DIR / "static"
+INDEX_HTML = STATIC_DIR / "index.html"
+
+from game_state import GameRoom, TOKEN_OPTIONS, PLAYER_COLORS, SQUARES
+
+app = FastAPI(title="Monopoly 3D Web Edition")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# In-memory rooms and WebSocket connections
+rooms: Dict[str, GameRoom] = {}
+connections: Dict[str, Dict[str, WebSocket]] = {} # room_id -> {player_id: ws}
+
+async def broadcast_room(room_id: str, message: dict):
+    if room_id in connections:
+        payload = json.dumps(message)
+        dead = []
+        for pid, ws in connections[room_id].items():
+            try:
+                await ws.send_text(payload)
+            except Exception:
+                dead.append(pid)
+        for pid in dead:
+            connections[room_id].pop(pid, None)
+
+@app.get("/api/config")
+async def get_config():
+    return {
+        "tokens": TOKEN_OPTIONS,
+        "colors": PLAYER_COLORS,
+        "squares": SQUARES
+    }
+
+@app.post("/api/create_room")
+async def create_room(data: dict):
+    room_id = data.get("room_id") or uuid.uuid4().hex[:6].upper()
+    host_id = data.get("player_id") or uuid.uuid4().hex[:8]
+    party_id = data.get("party_id")
+    
+    room = GameRoom(room_id, host_id, party_id)
+    rooms[room_id] = room
+    connections[room_id] = {}
+    return {"room_id": room_id, "host_id": host_id}
+
+@app.websocket("/ws/{room_id}/{player_id}")
+async def websocket_endpoint(websocket: WebSocket, room_id: str, player_id: str):
+    await websocket.accept()
+
+    # Create room on the fly if not exists
+    if room_id not in rooms:
+        rooms[room_id] = GameRoom(room_id, player_id)
+        connections[room_id] = {}
+
+    room = rooms[room_id]
+    connections[room_id][player_id] = websocket
+
+    try:
+        while True:
+            text = await websocket.receive_text()
+            data = json.loads(text)
+            action = data.get("action")
+
+            if action == "JOIN":
+                name = data.get("name", f"Spieler {len(room.players)+1}")
+                token = data.get("token", "dog")
+                color = data.get("color", "#e74c3c")
+                room.add_player(player_id, name, token, color)
+                await broadcast_room(room_id, {
+                    "type": "STATE_UPDATE",
+                    "state": room.to_dict()
+                })
+
+            elif action == "START_GAME":
+                if room.host_id == player_id or len(room.players) >= 2:
+                    try:
+                        room.start_game()
+                        await broadcast_room(room_id, {
+                            "type": "GAME_STARTED",
+                            "state": room.to_dict()
+                        })
+                    except Exception as e:
+                        await websocket.send_text(json.dumps({"type": "ERROR", "message": str(e)}))
+
+            elif action == "ADD_BOT":
+                if room.status == "LOBBY":
+                    bot_num = sum(1 for p in room.players if p.is_bot) + 1
+                    bot_id = f"bot_{uuid.uuid4().hex[:6]}"
+                    bot_name = f"Computer {bot_num}"
+                    bot_token = TOKEN_OPTIONS[bot_num % len(TOKEN_OPTIONS)]["id"]
+                    bot_color = PLAYER_COLORS[bot_num % len(PLAYER_COLORS)]["hex"]
+                    room.add_player(bot_id, bot_name, bot_token, bot_color, is_bot=True)
+                    await broadcast_room(room_id, {
+                        "type": "STATE_UPDATE",
+                        "state": room.to_dict()
+                    })
+
+            elif action == "ROLL_DICE":
+                curr = room.current_player()
+                if curr and curr.id == player_id:
+                    res = room.roll_dice()
+                    await broadcast_room(room_id, {
+                        "type": "DICE_ROLLED",
+                        "result": res,
+                        "state": room.to_dict()
+                    })
+
+            elif action == "BUY_PROPERTY":
+                sq_idx = data.get("sq_idx")
+                res = room.buy_property(player_id, sq_idx)
+                await broadcast_room(room_id, {
+                    "type": "PROPERTY_BOUGHT",
+                    "result": res,
+                    "state": room.to_dict()
+                })
+
+            elif action == "BUILD_HOUSE":
+                sq_idx = data.get("sq_idx")
+                res = room.build_house(player_id, sq_idx)
+                await broadcast_room(room_id, {
+                    "type": "HOUSE_BUILT",
+                    "result": res,
+                    "state": room.to_dict()
+                })
+
+            elif action == "SELL_HOUSE":
+                sq_idx = data.get("sq_idx")
+                res = room.sell_house(player_id, sq_idx)
+                await broadcast_room(room_id, {
+                    "type": "HOUSE_SOLD",
+                    "result": res,
+                    "state": room.to_dict()
+                })
+
+            elif action == "PROPOSE_TRADE":
+                target_id = data.get("target_id")
+                offer_money = int(data.get("offer_money", 0))
+                offer_props = [int(x) for x in data.get("offer_props", [])]
+                req_money = int(data.get("req_money", 0))
+                req_props = [int(x) for x in data.get("req_props", [])]
+                res = room.propose_trade(player_id, target_id, offer_money, offer_props, req_money, req_props)
+                await broadcast_room(room_id, {
+                    "type": "TRADE_PROPOSED",
+                    "result": res,
+                    "state": room.to_dict()
+                })
+
+            elif action == "ACCEPT_TRADE":
+                res = room.accept_trade(player_id)
+                await broadcast_room(room_id, {
+                    "type": "TRADE_ACCEPTED",
+                    "result": res,
+                    "state": room.to_dict()
+                })
+
+            elif action == "REJECT_TRADE":
+                res = room.reject_trade(player_id)
+                await broadcast_room(room_id, {
+                    "type": "TRADE_REJECTED",
+                    "result": res,
+                    "state": room.to_dict()
+                })
+
+            elif action == "TOGGLE_MORTGAGE":
+                sq_idx = data.get("sq_idx")
+                res = room.toggle_mortgage(player_id, sq_idx)
+                await broadcast_room(room_id, {
+                    "type": "MORTGAGE_TOGGLED",
+                    "result": res,
+                    "state": room.to_dict()
+                })
+
+            elif action == "PAY_BAIL":
+                res = room.pay_bail(player_id)
+                await broadcast_room(room_id, {
+                    "type": "BAIL_PAID",
+                    "result": res,
+                    "state": room.to_dict()
+                })
+
+            elif action == "USE_JAIL_CARD":
+                res = room.use_jail_card(player_id)
+                await broadcast_room(room_id, {
+                    "type": "JAIL_CARD_USED",
+                    "result": res,
+                    "state": room.to_dict()
+                })
+
+            elif action == "END_TURN":
+                res = room.end_turn(player_id)
+                await broadcast_room(room_id, {
+                    "type": "TURN_ENDED",
+                    "result": res,
+                    "state": room.to_dict()
+                })
+                # Check if next player is BOT
+                await handle_bot_turn_if_needed(room_id)
+
+            elif action == "BANKRUPTCY":
+                res = room.declare_bankruptcy(player_id)
+                await broadcast_room(room_id, {
+                    "type": "BANKRUPTCY",
+                    "result": res,
+                    "state": room.to_dict()
+                })
+                await handle_bot_turn_if_needed(room_id)
+
+            elif action == "CHAT":
+                msg = data.get("message", "").strip()
+                if msg:
+                    p = next((pl for pl in room.players if pl.id == player_id), None)
+                    p_name = p.name if p else "Gast"
+                    room.log(f"💬 {p_name}: {msg}")
+                    await broadcast_room(room_id, {
+                        "type": "CHAT",
+                        "sender": p_name,
+                        "message": msg,
+                        "state": room.to_dict()
+                    })
+
+    except WebSocketDisconnect:
+        if room_id in connections:
+            connections[room_id].pop(player_id, None)
+            # Notify remaining players
+            await broadcast_room(room_id, {
+                "type": "PLAYER_DISCONNECTED",
+                "player_id": player_id,
+                "state": room.to_dict()
+            })
+
+async def handle_bot_turn_if_needed(room_id: str):
+    room = rooms.get(room_id)
+    if not room or room.status != "PLAYING":
+        return
+
+    curr = room.current_player()
+    if curr and curr.is_bot and not curr.is_bankrupt:
+        await asyncio.sleep(1.2)
+        # Bot rolls
+        roll_res = room.roll_dice()
+        await broadcast_room(room_id, {
+            "type": "DICE_ROLLED",
+            "result": roll_res,
+            "state": room.to_dict()
+        })
+        await asyncio.sleep(1.5)
+
+        # Bot decision on pending action
+        if room.pending_action and room.pending_action.get("type") == "BUY_OR_AUCTION":
+            sq = room.pending_action["square"]
+            price = sq["price"]
+            if curr.money >= price + 150: # Bot keeps emergency buffer
+                room.buy_property(curr.id, sq["index"])
+                await broadcast_room(room_id, {
+                    "type": "PROPERTY_BOUGHT",
+                    "state": room.to_dict()
+                })
+                await asyncio.sleep(1.0)
+            else:
+                room.pending_action = None
+
+        # Bot ends turn
+        end_res = room.end_turn(curr.id)
+        await broadcast_room(room_id, {
+            "type": "TURN_ENDED",
+            "result": end_res,
+            "state": room.to_dict()
+        })
+        # Chain if next is bot
+        await handle_bot_turn_if_needed(room_id)
+
+# Mount static files dynamically
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+@app.get("/")
+async def root():
+    return FileResponse(
+        str(INDEX_HTML),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+    )
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8090))
+    host = os.environ.get("HOST", "0.0.0.0")
+    uvicorn.run(app, host=host, port=port)

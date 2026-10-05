@@ -1,0 +1,1528 @@
+/* Monopoly 3D Web Edition - Modern Responsive Tabletop Theme */
+
+:root {
+    --bg-dark: #0f141c;
+    --bg-surface: rgba(22, 29, 41, 0.88);
+    --bg-card: #1c2433;
+    --bg-glass: rgba(28, 36, 51, 0.75);
+    --border-color: rgba(255, 255, 255, 0.12);
+    --border-gold: rgba(212, 175, 55, 0.45);
+    
+    --primary: #27ae60;
+    --primary-hover: #2ecc71;
+    --accent-gold: #f1c40f;
+    --accent-red: #e74c3c;
+    --accent-blue: #3498db;
+    
+    --text-main: #f5f6fa;
+    --text-muted: #a4b0be;
+    --text-gold: #f9ca24;
+    
+    --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --shadow-main: 0 8px 32px rgba(0, 0, 0, 0.45);
+    --shadow-glow: 0 0 20px rgba(39, 174, 96, 0.4);
+    
+    --header-height: 56px;
+    --bottom-dock-height: 74px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--bg-dark);
+    font-family: var(--font-family);
+    color: var(--text-main);
+    touch-action: manipulation;
+}
+
+/* 3D Canvas Container */
+#canvas-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    touch-action: none;
+}
+
+#canvas-container canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    outline: none;
+}
+
+/* UI Overlay Layer */
+#ui-root {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none; /* Let canvas receive touch events where empty */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.interactive {
+    pointer-events: auto;
+}
+
+/* Header Bar */
+.game-header {
+    height: var(--header-height);
+    background: linear-gradient(180deg, rgba(15, 20, 28, 0.95) 0%, rgba(15, 20, 28, 0.7) 80%, transparent 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    gap: 12px;
+}
+
+.brand-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-badge {
+    background: #c0392b;
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 14px;
+    letter-spacing: 2px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 2px 8px rgba(192, 57, 43, 0.5);
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.room-chip {
+    display: flex;
+    align-items: center;
+    background: var(--bg-surface);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-color);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.room-chip:hover {
+    border-color: var(--accent-gold);
+    color: var(--text-gold);
+}
+
+.room-chip span.code {
+    font-weight: 700;
+    margin-left: 5px;
+    letter-spacing: 1px;
+}
+
+/* Turn Indicator Banner */
+.turn-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-surface);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-gold);
+    padding: 6px 14px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: var(--shadow-main);
+    transition: all 0.3s ease;
+}
+
+.turn-banner.my-turn {
+    background: linear-gradient(135deg, rgba(39, 174, 96, 0.3) 0%, rgba(22, 29, 41, 0.9) 100%);
+    border-color: var(--primary);
+    box-shadow: var(--shadow-glow);
+    animation: pulse-turn 2s infinite ease-in-out;
+}
+
+@keyframes pulse-turn {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+
+.turn-color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 6px rgba(0,0,0,0.5);
+}
+
+/* Quick Tools */
+.header-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cam-toggle-group {
+    display: inline-flex;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 2px;
+    gap: 2px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.btn-cam {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    padding: 6px 11px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    outline: none;
+    letter-spacing: 0.5px;
+}
+
+.btn-cam:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.btn-cam.active {
+    background: linear-gradient(135deg, var(--primary) 0%, #1e824c 100%);
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(39, 174, 96, 0.6);
+}
+
+.btn-icon {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    backdrop-filter: blur(8px);
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    background: var(--bg-card);
+    border-color: var(--text-gold);
+    color: var(--text-gold);
+    transform: translateY(-1px);
+}
+
+/* Mobile Player Ribbon (top horizontal scroll) */
+.mobile-player-strip {
+    display: none;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 4px 12px;
+    gap: 8px;
+    background: rgba(15, 20, 28, 0.6);
+    backdrop-filter: blur(6px);
+}
+
+.mobile-player-strip::-webkit-scrollbar {
+    display: none;
+}
+
+.mobile-player-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.mobile-player-chip.active {
+    border-color: var(--accent-gold);
+    background: rgba(241, 196, 15, 0.15);
+    box-shadow: 0 0 8px rgba(241, 196, 15, 0.4);
+}
+
+/* Desktop Middle Layout (Sidebar Left, Log Right) */
+.main-stage {
+    flex: 1;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 16px;
+    pointer-events: none;
+}
+
+/* Left Sidebar: Players */
+.players-panel {
+    width: 250px;
+    max-height: calc(100vh - 170px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    pointer-events: auto;
+}
+
+.player-card {
+    background: var(--bg-surface);
+    backdrop-filter: blur(14px);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px 12px;
+    transition: all 0.25s ease;
+    cursor: pointer;
+    box-shadow: var(--shadow-main);
+    position: relative;
+    overflow: hidden;
+}
+
+.player-card.active {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 14px rgba(241, 196, 15, 0.35);
+    transform: scale(1.02);
+}
+
+.player-card.is-me {
+    border-left: 4px solid var(--primary);
+}
+
+.player-card.bankrupt {
+    opacity: 0.45;
+    filter: grayscale(1);
+}
+
+.player-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.player-identity {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.player-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.8);
+}
+
+.player-name {
+    font-weight: 700;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+}
+
+.player-token-label {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.player-cash {
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--accent-gold);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.player-subinfo {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 4px;
+    margin-top: 4px;
+}
+
+.player-status-tag {
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.tag-jail {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.tag-bot {
+    background: #7f8c8d;
+    color: #fff;
+}
+
+/* Right Sidebar: Game Logs & Activity (Collapsible / Default eingeklappt) */
+.logs-panel {
+    position: fixed;
+    right: 16px;
+    top: 70px;
+    width: 310px;
+    max-height: calc(100vh - 240px);
+    display: flex;
+    flex-direction: column;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    z-index: 60;
+    overflow: hidden;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+    transform: translateX(340px);
+    opacity: 0;
+    pointer-events: none;
+}
+
+.logs-panel.open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.logs-header {
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logs-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.log-entry {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 5px 8px;
+    border-radius: 6px;
+    border-left: 2px solid transparent;
+}
+
+.log-entry.log-dice { border-color: var(--accent-gold); }
+.log-entry.log-buy { border-color: var(--primary); }
+.log-entry.log-rent { border-color: var(--accent-red); }
+.log-entry.log-card { border-color: var(--accent-blue); }
+
+.chat-input-bar {
+    display: flex;
+    padding: 8px;
+    gap: 6px;
+    border-top: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.chat-input {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: #fff;
+    padding: 6px 8px;
+    font-size: 12px;
+    outline: none;
+}
+
+.chat-input:focus {
+    border-color: var(--accent-gold);
+}
+
+.chat-send-btn {
+    background: var(--primary);
+    border: none;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0 10px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+/* Bottom Tabletop Player Area (Tisch-Ablage & Action Cockpit) */
+.tabletop-dock {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: linear-gradient(180deg, rgba(14, 20, 30, 0.85) 0%, rgba(10, 14, 22, 0.98) 100%);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.6);
+    z-index: 30;
+    padding: 6px 16px 10px 16px;
+    gap: 6px;
+    pointer-events: auto;
+}
+
+.table-card-rack {
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.table-rack-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 700;
+}
+
+.table-cards-scroll {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 2px 6px 2px;
+    min-height: 54px;
+    scrollbar-width: thin;
+}
+
+.table-cards-scroll::-webkit-scrollbar {
+    height: 4px;
+}
+
+.table-cards-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.table-mini-card {
+    flex-shrink: 0;
+    width: 72px;
+    height: 52px;
+    background: #fdfbf7;
+    color: #111;
+    border: 1px solid #222;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    user-select: none;
+}
+
+.table-mini-card:hover {
+    transform: translateY(-4px) scale(1.06);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+}
+
+.table-mini-card.mortgaged {
+    filter: grayscale(0.8) opacity(0.7);
+    border-color: #c0392b;
+}
+
+.table-mini-card-bar {
+    height: 14px;
+    width: 100%;
+    border-bottom: 1px solid #222;
+}
+
+.table-mini-card-name {
+    font-size: 9px;
+    font-weight: 800;
+    text-align: center;
+    padding: 2px;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.table-mini-card-houses {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    margin-top: auto;
+    padding-bottom: 2px;
+}
+
+.house-dot-mini {
+    width: 6px;
+    height: 6px;
+    background: #27ae60;
+    border-radius: 1px;
+}
+
+.hotel-dot-mini {
+    width: 12px;
+    height: 6px;
+    background: #e74c3c;
+    border-radius: 1px;
+}
+
+.table-empty-hint {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    font-style: italic;
+    padding: 6px 4px;
+}
+
+.table-action-bar {
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.player-wallet-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 6px 14px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+}
+
+.wallet-bills-stack {
+    position: relative;
+    width: 44px;
+    height: 28px;
+}
+
+.wallet-bill {
+    position: absolute;
+    width: 38px;
+    height: 22px;
+    border-radius: 2px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    object-fit: cover;
+}
+
+.bill-500 { top: 0px; left: 0px; transform: rotate(-6deg); z-index: 1; }
+.bill-100 { top: 3px; left: 4px; transform: rotate(2deg); z-index: 2; }
+.bill-50  { top: 5px; left: 7px; transform: rotate(8deg); z-index: 3; }
+
+.wallet-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.wallet-label {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+.wallet-amount {
+    font-size: 17px;
+    font-weight: 900;
+    color: var(--accent-gold);
+    text-shadow: 0 0 10px rgba(241, 196, 15, 0.4);
+}
+
+.action-buttons-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 900px;
+    width: 100%;
+    justify-content: center;
+}
+
+.btn-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 12px 22px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+    min-height: 48px;
+}
+
+.btn-action:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.4);
+}
+
+.btn-action:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-action:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    filter: grayscale(0.8);
+}
+
+.btn-roll {
+    background: linear-gradient(135deg, #f39c12 0%, #d35400 100%);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 18px rgba(243, 156, 18, 0.4);
+    min-width: 140px;
+}
+
+.btn-roll.can-roll {
+    animation: pulse-button 1.5s infinite;
+}
+
+@keyframes pulse-button {
+    0%, 100% { box-shadow: 0 0 15px rgba(243, 156, 18, 0.4); }
+    50% { box-shadow: 0 0 28px rgba(243, 156, 18, 0.85); transform: scale(1.02); }
+}
+
+.btn-buy {
+    background: linear-gradient(135deg, #27ae60 0%, #1e824c 100%);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-end {
+    background: linear-gradient(135deg, #2c3e50 0%, #1a252f 100%);
+    color: #ecf0f1;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-portfolio {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border: 1px solid var(--border-color);
+    backdrop-filter: blur(8px);
+}
+
+.btn-trade {
+    background: linear-gradient(135deg, #8e44ad 0%, #6c3483 100%);
+    color: #fff;
+}
+
+/* Modals & Popups */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(8, 12, 18, 0.75);
+    backdrop-filter: blur(10px);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    pointer-events: auto;
+}
+
+.modal-overlay.open {
+    display: flex;
+}
+
+.modal-box {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-gold);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    max-height: 96vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    animation: modal-pop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modal-pop {
+    0% { transform: scale(0.9); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.modal-header {
+    padding: 12px 18px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modal-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-gold);
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Lobby Modal Styling */
+.lobby-token-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.token-choice {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 6px 4px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s;
+}
+
+.token-choice:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.token-choice.selected {
+    border-color: var(--accent-gold);
+    background: rgba(241, 196, 15, 0.15);
+}
+
+.token-icon-3d {
+    font-size: 22px;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.color-palette-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.color-dot-pick {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: transform 0.2s;
+}
+
+.color-dot-pick:hover {
+    transform: scale(1.15);
+}
+
+.color-dot-pick.selected {
+    border-color: #fff;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+}
+
+.lobby-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.lobby-players-list {
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 10px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.lobby-player-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+/* Authentic Property Deed Card (Besitzurkunde) */
+.deed-card {
+    background: #fdfbf7;
+    color: #1a1a1a;
+    border: 2px solid #222;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    font-family: 'Century Gothic', Arial, sans-serif;
+}
+
+.deed-banner {
+    padding: 14px 10px;
+    text-align: center;
+    border-bottom: 2px solid #222;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+.deed-subtitle {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.deed-street-name {
+    font-size: 19px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.deed-content {
+    padding: 14px 18px;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.deed-row {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dotted #ccc;
+    padding-bottom: 2px;
+}
+
+.deed-row.bold {
+    font-weight: 700;
+    border-bottom: 1px solid #999;
+}
+
+.deed-footer {
+    border-top: 2px solid #222;
+    padding: 10px 18px;
+    font-size: 12px;
+    background: #f0ede6;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.deed-actions-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+/* Authentic Drawn Card Popup (Ereignis / Gemeinschaft) */
+.chance-chest-card {
+    background: #fcf9ea;
+    border: 3px solid #b58900;
+    border-radius: 12px;
+    padding: 24px 20px;
+    color: #2b2b2b;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+}
+
+.chance-chest-card.chest {
+    border-color: #2980b9;
+    background: #ebf5fb;
+}
+
+.chance-chest-card.chance {
+    border-color: #c0392b;
+    background: #fdf2e9;
+}
+
+.chance-card-type {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+}
+
+.chance-card-text {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.45;
+    margin: 16px 0;
+}
+
+.card-illustration-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 14px 0;
+    min-height: 120px;
+}
+
+.card-illustration-img {
+    max-width: 180px;
+    max-height: 140px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+}
+
+/* Authentic ROM Card Image & Illustration display */
+.deed-image-wrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+    border: 1px solid var(--border-color);
+}
+
+.deed-card-img {
+    max-width: 100%;
+    max-height: 380px;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+}
+
+.mortgage-stamp-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-18deg);
+    border: 4px solid #c0392b;
+    color: #c0392b;
+    font-size: 24px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    padding: 8px 18px;
+    text-transform: uppercase;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(192, 57, 43, 0.5);
+    pointer-events: none;
+}
+
+.card-illustration-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 8px 0 14px 0;
+}
+
+.card-illustration-img {
+    max-height: 110px;
+    max-width: 180px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.25));
+}
+
+/* Portfolio Drawer for Mobile / Desktop */
+.portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 10px;
+    max-height: 55vh;
+    overflow-y: auto;
+    padding: 4px;
+}
+
+.portfolio-card-mini {
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.portfolio-card-mini:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-gold);
+}
+
+.portfolio-card-mini.mortgaged {
+    opacity: 0.6;
+    filter: grayscale(0.8);
+    position: relative;
+}
+
+.portfolio-mini-header {
+    height: 16px;
+    border-bottom: 1px solid rgba(0,0,0,0.3);
+}
+
+.portfolio-mini-body {
+    padding: 6px 8px;
+    font-size: 11px;
+}
+
+.portfolio-mini-title {
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.portfolio-mini-houses {
+    display: flex;
+    gap: 2px;
+    margin-top: 4px;
+}
+
+.house-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: #2ecc71;
+}
+
+.hotel-dot {
+    width: 10px;
+    height: 6px;
+    border-radius: 1px;
+    background: #e74c3c;
+}
+
+/* Responsive Rules for Smartphones & Tablets */
+@media (max-width: 900px) {
+    .players-panel,
+    .logs-panel {
+        display: none; /* In mobile, players are shown in the top strip */
+    }
+
+    .mobile-player-strip {
+        display: flex;
+    }
+
+    .action-dock {
+        height: auto;
+        padding: 8px 10px 14px;
+    }
+
+    .action-buttons-wrap {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .btn-action {
+        font-size: 13px;
+        padding: 10px 14px;
+        min-height: 44px;
+        flex: 1 1 calc(50% - 8px);
+    }
+
+    .btn-roll {
+        flex: 1 1 100%;
+        font-size: 16px;
+    }
+
+    .game-header {
+        padding: 0 10px;
+    }
+
+    .brand-badge {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .modal-box {
+        max-width: 95vw;
+    }
+
+    .turn-banner {
+        font-size: 12px;
+        padding: 4px 10px;
+    }
+}
+
+/* --- Authentic 2012 Console Minimalist UI Overhaul --- */
+
+/* Top Center 2012 Console Player Ribbon (4 Player Pods) */
+.top-player-hud {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex: 1;
+    max-width: 680px;
+    pointer-events: auto;
+}
+
+.hud-player-pod {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.85) 0%, rgba(15, 23, 42, 0.95) 100%);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 28px;
+    padding: 4px 12px 4px 6px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+    transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    user-select: none;
+}
+
+.hud-player-pod:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+}
+
+.hud-player-pod.active-turn {
+    border-color: var(--accent-gold);
+    background: linear-gradient(180deg, rgba(45, 62, 90, 0.95) 0%, rgba(20, 30, 48, 0.95) 100%);
+    box-shadow: 0 0 16px rgba(241, 196, 15, 0.5), 0 4px 14px rgba(0, 0, 0, 0.5);
+    transform: scale(1.04);
+}
+
+.hud-pod-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    position: relative;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.hud-jail-tag {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    font-size: 10px;
+    background: #e74c3c;
+    border-radius: 50%;
+    padding: 1px;
+}
+
+.hud-pod-details {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+}
+
+.hud-pod-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: #e2e8f0;
+    white-space: nowrap;
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.hud-pod-money {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--accent-gold);
+    letter-spacing: 0.3px;
+}
+
+.hud-pod-inspect-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-muted);
+    font-size: 11px;
+    border-radius: 12px;
+    padding: 2px 6px;
+    margin-left: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.hud-pod-inspect-btn:hover {
+    background: var(--bg-card);
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+    transform: scale(1.15);
+}
+
+.hud-player-pod.bankrupt {
+    opacity: 0.4;
+    filter: grayscale(1);
+    pointer-events: none;
+}
+
+/* Minimalist Floating Bottom Dock */
+.bottom-floating-dock {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    background: rgba(15, 23, 42, 0.88);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 40px;
+    padding: 6px 14px;
+    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65), 0 0 1px rgba(255, 255, 255, 0.2);
+    z-index: 25;
+    pointer-events: auto;
+}
+
+.bottom-floating-dock .cockpit-wallet {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.12));
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    padding: 6px 14px;
+    border-radius: 24px;
+    margin-right: 6px;
+    position: relative;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.bottom-floating-dock .cockpit-wallet:hover {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.35), rgba(217, 119, 6, 0.2));
+    border-color: rgba(245, 158, 11, 0.75);
+    transform: scale(1.03);
+}
+
+.cockpit-wallet-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.cockpit-wallet-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.1;
+}
+
+.cockpit-wallet-label {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    color: #fde68a;
+    text-transform: uppercase;
+}
+
+.cockpit-wallet-amount {
+    font-size: 15px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.2px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+}
+
+.cockpit-wallet-delta {
+    position: absolute;
+    top: -18px;
+    right: 10px;
+    font-size: 13px;
+    font-weight: 800;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.6s cubic-bezier(0.2, 0.9, 0.3, 1);
+    white-space: nowrap;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.cockpit-wallet-delta.delta-plus {
+    color: #4ade80;
+    opacity: 1;
+    transform: translateY(-8px);
+}
+
+.cockpit-wallet-delta.delta-minus {
+    color: #f87171;
+    opacity: 1;
+    transform: translateY(-8px);
+}
+
+.bottom-floating-dock .action-buttons-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bottom-floating-dock .btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    min-height: 42px;
+}
+
+.btn-action.btn-portfolio {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+}
+.btn-action.btn-portfolio:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+}
+
+@media (max-width: 850px) {
+    .game-header {
+        padding: 0 8px;
+        height: 50px;
+    }
+    .brand-badge {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+    .room-chip {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+    .top-player-hud {
+        gap: 6px;
+    }
+    .hud-player-pod {
+        padding: 3px 8px 3px 4px;
+    }
+    .hud-pod-avatar {
+        width: 26px;
+        height: 26px;
+        font-size: 13px;
+    }
+    .hud-pod-name {
+        font-size: 10px;
+        max-width: 60px;
+    }
+    .hud-pod-money {
+        font-size: 11px;
+    }
+    .bottom-floating-dock {
+        bottom: 12px;
+        padding: 4px 10px;
+        width: 95%;
+        max-width: 480px;
+        justify-content: center;
+    }
+    .bottom-floating-dock .btn-action {
+        padding: 8px 12px;
+        font-size: 12px;
+        min-height: 36px;
+    }
+}
+
+/* Seat Nahansicht Floating Return Bar */
+.seat-focus-bar {
+    position: fixed;
+    top: 66px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    pointer-events: auto;
+    animation: fadeInDown 0.25s ease-out;
+}
+
+.btn-leave-seat-focus {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(15, 23, 42, 0.90);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(255, 215, 0, 0.55);
+    color: #ffd700;
+    padding: 9px 22px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    transition: all 0.2s ease;
+}
+
+.btn-leave-seat-focus:hover {
+    background: rgba(30, 41, 59, 0.96);
+    border-color: #ffd700;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(255, 215, 0, 0.28);
+}
+
+.seat-focus-icon {
+    font-size: 16px;
+    transition: transform 0.2s ease;
+}
+
+.btn-leave-seat-focus:hover .seat-focus-icon {
+    transform: translateX(-3px);
+}
