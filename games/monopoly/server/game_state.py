@@ -1,6 +1,12 @@
+import os
+import json
 import random
 import time
+from pathlib import Path
 from typing import Dict, List, Optional, Any
+
+ASSETS_DIR = Path(__file__).resolve().parent.parent / "static" / "assets"
+
 
 # 40 standard German Monopoly squares
 SQUARES = [
@@ -59,49 +65,81 @@ COLOR_GROUPS = {
     "utility": [12, 28]
 }
 
-COMMUNITY_CHEST_CARDS = [
-    {"text": "Rücke vor bis auf LOS. Ziehe 200 DM ein.", "action": "goto", "pos": 0},
-    {"text": "Bank-Irrtum zu deinen Gunsten. Ziehe 200 DM ein.", "action": "money", "amount": 200},
-    {"text": "Arzt-Kosten. Zahle 50 DM.", "action": "money", "amount": -50},
-    {"text": "Aus Verkauf von Aktien erhältst du 50 DM.", "action": "money", "amount": 50},
-    {"text": "Du kommst aus dem Gefängnis frei. Diese Karte kann behalten werden.", "action": "jail_free"},
-    {"text": "Gehe in das Gefängnis. Begib dich direkt dorthin.", "action": "gotojail"},
-    {"text": "Es ist dein Geburtstag! Ziehe von jedem Mitspieler 10 DM ein.", "action": "birthday", "amount": 10},
-    {"text": "Einkommensteuer-Rückzahlung. Ziehe 20 DM ein.", "action": "money", "amount": 20},
-    {"text": "Du erbst 100 DM.", "action": "money", "amount": 100},
-    {"text": "Krankenhaus-Gebühren. Zahle 100 DM.", "action": "money", "amount": -100},
-    {"text": "Schulgeld. Zahle 50 DM.", "action": "money", "amount": -50},
-    {"text": "Zahle eine Strafe von 10 DM.", "action": "money", "amount": -10},
-    {"text": "Zweiter Preis im Schönheitswettbewerb. Ziehe 10 DM ein.", "action": "money", "amount": 10},
-    {"text": "Du wirst zu Straßenarbeiten herangezogen. Zahle 40 DM je Haus und 115 DM je Hotel.", "action": "repairs", "house": 40, "hotel": 115}
+def _load_cards(filename: str, deck_name: str, fallback_cards: list) -> list:
+    filepath = ASSETS_DIR / "chance_chest" / filename
+    if filepath.exists():
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            cards = []
+            for item in data:
+                cards.append({
+                    "id": item.get("id"),
+                    "deck": deck_name,
+                    "text": item.get("text_de", ""),
+                    "image": item.get("card_image_filename", ""),
+                    "action": item.get("action", ""),
+                    "value": item.get("value", 0),
+                    "extra_value": item.get("extra_value", 0),
+                    "target_tile": item.get("target_tile"),
+                    "illustration": item.get("illustration", "")
+                })
+            if cards:
+                return cards
+        except Exception as e:
+            print(f"Warning: Failed to load {filename}: {e}")
+    return fallback_cards
+
+FALLBACK_COMMUNITY_CHEST_CARDS = [
+    {"id": 1, "deck": "Gemeinschaft", "text": "Du erhältst eine Beratungsgebühr von £25.", "image": "gemeinschaft_01.png", "action": "RECEIVE_MONEY", "value": 25},
+    {"id": 2, "deck": "Gemeinschaft", "text": "Aus Lagerverkäufen erhältst du: £50", "image": "gemeinschaft_02.png", "action": "RECEIVE_MONEY", "value": 50},
+    {"id": 3, "deck": "Gemeinschaft", "text": "Bankfehler zu deinen Gunsten. Ziehe £200 ein.", "image": "gemeinschaft_03.png", "action": "RECEIVE_MONEY", "value": 200},
+    {"id": 4, "deck": "Gemeinschaft", "text": "Deine Lebensversicherung wird fällig. Du erhältst £100.", "image": "gemeinschaft_04.png", "action": "RECEIVE_MONEY", "value": 100},
+    {"id": 5, "deck": "Gemeinschaft", "text": "Zweiter Preis im Schönheitswettbewerb. Du erhältst £10.", "image": "gemeinschaft_05.png", "action": "RECEIVE_MONEY", "value": 10},
+    {"id": 6, "deck": "Gemeinschaft", "text": "Du erbst £100.", "image": "gemeinschaft_06.png", "action": "RECEIVE_MONEY", "value": 100},
+    {"id": 7, "deck": "Gemeinschaft", "text": "Einkommensteuer-Rückzahlung. Du erhältst £20.", "image": "gemeinschaft_07.png", "action": "RECEIVE_MONEY", "value": 20},
+    {"id": 8, "deck": "Gemeinschaft", "text": "Urlaubsgeld! Du erhältst £100.", "image": "gemeinschaft_08.png", "action": "RECEIVE_MONEY", "value": 100},
+    {"id": 9, "deck": "Gemeinschaft", "text": "Du hast Geburtstag! Jeder Spieler schenkt dir £10.", "image": "gemeinschaft_09.png", "action": "RECEIVE_FROM_PLAYERS", "value": 10},
+    {"id": 10, "deck": "Gemeinschaft", "text": "Zahle Schulgeld: £50.", "image": "gemeinschaft_10.png", "action": "PAY_MONEY", "value": 50},
+    {"id": 11, "deck": "Gemeinschaft", "text": "Arztkosten. Zahle £50.", "image": "gemeinschaft_11.png", "action": "PAY_MONEY", "value": 50},
+    {"id": 12, "deck": "Gemeinschaft", "text": "Krankenhausgebühr: Du zahlst £100.", "image": "gemeinschaft_12.png", "action": "PAY_MONEY", "value": 100},
+    {"id": 13, "deck": "Gemeinschaft", "text": "Kosten für Straßenausbesserungen. Zahle: £40 pro Haus, £115 pro Hotel.", "image": "gemeinschaft_13.png", "action": "PAY_FOR_BUILDINGS", "value": 40, "extra_value": 115},
+    {"id": 14, "deck": "Gemeinschaft", "text": "Rücke vor bis auf LOS. (Ziehe £200 ein.)", "image": "gemeinschaft_14.png", "action": "MOVE_TO_TILE", "target_tile": 0},
+    {"id": 15, "deck": "Gemeinschaft", "text": "Gehe in das Gefängnis! Begib dich direkt dorthin.", "image": "gemeinschaft_15.png", "action": "GO_TO_JAIL"},
+    {"id": 16, "deck": "Gemeinschaft", "text": "Du kommst aus dem Gefängnis frei. Behalte diese Karte, bis du sie benötigst oder verkaufst.", "image": "gemeinschaft_16.png", "action": "GET_OUT_OF_JAIL_FREE"}
 ]
 
-CHANCE_CARDS = [
-    {"text": "Rücke vor bis auf LOS. Ziehe 200 DM ein.", "action": "goto", "pos": 0},
-    {"text": "Rücke vor bis zur Schlossallee.", "action": "goto", "pos": 39},
-    {"text": "Rücke vor bis zur Seestraße. Wenn du über LOS kommst, ziehe 200 DM ein.", "action": "goto", "pos": 11},
-    {"text": "Rücke vor bis zum nächsten Bahnhof. Wenn unbesessen, kannst du ihn kaufen. Wenn besessen, zahle doppelte Miete.", "action": "nearest_station"},
-    {"text": "Rücke vor bis zum nächsten Versorgungswerk. Wirf die Würfel und zahle das 10-fache des Wurfes.", "action": "nearest_utility"},
-    {"text": "Die Bank zahlt dir eine Dividende von 50 DM.", "action": "money", "amount": 50},
-    {"text": "Du kommst aus dem Gefängnis frei. Diese Karte kann behalten werden.", "action": "jail_free"},
-    {"text": "Gehe 3 Felder zurück.", "action": "back3"},
-    {"text": "Gehe in das Gefängnis. Begib dich direkt dorthin.", "action": "gotojail"},
-    {"text": "Mache Renovierungsarbeiten an deinen Häusern: Zahle 25 DM je Haus, 100 DM je Hotel.", "action": "repairs", "house": 25, "hotel": 100},
-    {"text": "Strafzettel für zu schnelles Fahren. Zahle 15 DM.", "action": "money", "amount": -15},
-    {"text": "Rücke vor bis zum Südbahnhof. Wenn du über LOS kommst, ziehe 200 DM ein.", "action": "goto", "pos": 5},
-    {"text": "Du bist zum Vorstand gewählt worden. Zahle jedem Spieler 50 DM.", "action": "pay_each", "amount": 50},
-    {"text": "Dein Bausparvertrag wird fällig. Ziehe 150 DM ein.", "action": "money", "amount": 150}
+FALLBACK_CHANCE_CARDS = [
+    {"id": 1, "deck": "Ereignis", "text": "Die Bank zahlt dir eine Dividende von £50.", "image": "ereignis_01.png", "action": "RECEIVE_MONEY", "value": 50},
+    {"id": 2, "deck": "Ereignis", "text": "Dein Bausparvertrag wird fällig. Du erhältst £150.", "image": "ereignis_02.png", "action": "RECEIVE_MONEY", "value": 150},
+    {"id": 3, "deck": "Ereignis", "text": "Strafzettel! Zahle £15.", "image": "ereignis_03.png", "action": "PAY_MONEY", "value": 15},
+    {"id": 4, "deck": "Ereignis", "text": "Du lässt deine Häuser renovieren: Zahle £25 pro Haus und £100 pro Hotel.", "image": "ereignis_04.png", "action": "PAY_FOR_BUILDINGS", "value": 25, "extra_value": 100},
+    {"id": 5, "deck": "Ereignis", "text": "Du bist zum Vorstand gewählt worden. Zahle jedem Spieler £50.", "image": "ereignis_05.png", "action": "PAY_EACH_PLAYER", "value": 50},
+    {"id": 6, "deck": "Ereignis", "text": "Rücke vor bis auf LOS. (Ziehe £200 ein.)", "image": "ereignis_06.png", "action": "MOVE_TO_TILE", "target_tile": 0},
+    {"id": 7, "deck": "Ereignis", "text": "Mache einen Ausflug zum Südbahnhof. Wenn du über LOS kommst, ziehe £200 ein.", "image": "ereignis_07.png", "action": "MOVE_TO_TILE", "target_tile": 5},
+    {"id": 8, "deck": "Ereignis", "text": "Rücke vor bis zur Seestraße. Wenn du über LOS kommst, ziehe £200 ein.", "image": "ereignis_08.png", "action": "MOVE_TO_TILE", "target_tile": 11},
+    {"id": 9, "deck": "Ereignis", "text": "Rücke vor bis zum Opernplatz. Wenn du über LOS kommst, ziehe £200 ein.", "image": "ereignis_09.png", "action": "MOVE_TO_TILE", "target_tile": 24},
+    {"id": 10, "deck": "Ereignis", "text": "Rücke vor bis zur Schlossallee.", "image": "ereignis_10.png", "action": "MOVE_TO_TILE", "target_tile": 39},
+    {"id": 11, "deck": "Ereignis", "text": "Rücke vor bis zum nächsten Bahnhof. Der Eigentümer erhält das Doppelte der normalen Miete.", "image": "ereignis_11.png", "action": "MOVE_TO_NEAREST_RAILROAD"},
+    {"id": 12, "deck": "Ereignis", "text": "Rücke vor bis zum nächsten Bahnhof. Der Eigentümer erhält das Doppelte der normalen Miete.", "image": "ereignis_12.png", "action": "MOVE_TO_NEAREST_RAILROAD"},
+    {"id": 13, "deck": "Ereignis", "text": "Rücke vor bis zum nächsten Werk. Würfel und zahle dem Eigentümer das 10-fache.", "image": "ereignis_13.png", "action": "MOVE_TO_NEAREST_UTILITY"},
+    {"id": 14, "deck": "Ereignis", "text": "Gehe 3 Felder zurück.", "image": "ereignis_14.png", "action": "MOVE_BACK_N_TILES", "value": 3},
+    {"id": 15, "deck": "Ereignis", "text": "Gehe in das Gefängnis! Begib dich direkt dorthin.", "image": "ereignis_15.png", "action": "GO_TO_JAIL"},
+    {"id": 16, "deck": "Ereignis", "text": "Du kommst aus dem Gefängnis frei. Behalte diese Karte, bis du sie benötigst oder verkaufst.", "image": "ereignis_16.png", "action": "GET_OUT_OF_JAIL_FREE"}
 ]
+
+COMMUNITY_CHEST_CARDS = _load_cards("gemeinschaftskarten.json", "Gemeinschaft", FALLBACK_COMMUNITY_CHEST_CARDS)
+CHANCE_CARDS = _load_cards("ereigniskarten.json", "Ereignis", FALLBACK_CHANCE_CARDS)
 
 TOKEN_OPTIONS = [
-    {"id": "dog", "name": "Terrier (Hund)", "model": "token_dog.obj"},
-    {"id": "hat", "name": "Zylinder", "model": "token_hat.obj"},
-    {"id": "boot", "name": "Stiefel", "model": "token_boot.obj"},
-    {"id": "iron", "name": "Bügeleisen", "model": "token_iron.obj"},
-    {"id": "ship", "name": "Schlachtschiff", "model": "token_ship.obj"},
-    {"id": "car", "name": "Rennwagen", "model": "token_car.obj"},
-    {"id": "thimble", "name": "Fingerhut", "model": "token_thimble.obj"},
-    {"id": "wheelbarrow", "name": "Schubkarre", "model": "token_wheelbarrow.obj"}
+    {"id": "dog", "name": "Terrier (Hund)", "model": "token_dog.obj", "icon": "hund_icon.png"},
+    {"id": "hat", "name": "Zylinder", "model": "token_hat.obj", "icon": "zylinder_icon.png"},
+    {"id": "boot", "name": "Stiefel", "model": "token_boot.obj", "icon": "schuh_icon.png"},
+    {"id": "iron", "name": "Bügeleisen", "model": "token_iron.obj", "icon": "buegeleisen_icon.png"},
+    {"id": "ship", "name": "Schlachtschiff", "model": "token_ship.obj", "icon": "schlachtschiff_icon.png"},
+    {"id": "car", "name": "Rennwagen", "model": "token_car.obj", "icon": "rennwagen_icon.png"},
+    {"id": "thimble", "name": "Fingerhut", "model": "token_thimble.obj", "icon": "fingerhut_icon.png"},
+    {"id": "wheelbarrow", "name": "Schubkarre", "model": "token_wheelbarrow.obj", "icon": "schubkarre_icon.png"}
 ]
 
 PLAYER_COLORS = [
@@ -364,12 +402,24 @@ class GameRoom:
 
         elif sq_type == "chance":
             card = self.draw_chance_card(player, roll_sum)
-            self.last_card = {"deck": "Ereignis", "card": card, "player": player.name}
+            self.last_card = {
+                "deck": "Ereignis",
+                "card": card,
+                "text": card.get("text", ""),
+                "image": card.get("image") or card.get("card_image_filename", ""),
+                "player": player.name
+            }
             return {"type": "CARD", "deck": "Ereignis", "card": card}
 
         elif sq_type == "chest":
             card = self.draw_chest_card(player)
-            self.last_card = {"deck": "Gemeinschaft", "card": card, "player": player.name}
+            self.last_card = {
+                "deck": "Gemeinschaft",
+                "card": card,
+                "text": card.get("text", ""),
+                "image": card.get("image") or card.get("card_image_filename", ""),
+                "player": player.name
+            }
             return {"type": "CARD", "deck": "Gemeinschaft", "card": card}
 
         elif sq_type in ["go", "parking", "jail"]:
@@ -437,62 +487,72 @@ class GameRoom:
         return card
 
     def apply_card(self, player: Player, card: dict, roll_sum: int):
-        act = card["action"]
-        self.log(f"Karte gezogen: {card['text']}")
-        if act == "goto":
-            target = card["pos"]
+        act = card.get("action", "")
+        card_text = card.get("text") or card.get("text_de", "")
+        self.log(f"Karte gezogen ({card.get('deck', '')}): {card_text}")
+
+        if act in ["RECEIVE_MONEY", "money"]:
+            amt = card.get("value") if "value" in card else card.get("amount", 0)
+            player.money += amt
+            if amt > 0:
+                self.log(f"💰 {player.name} erhält {amt} DM.")
+            else:
+                self.log(f"💸 {player.name} zahlt {-amt} DM.")
+
+        elif act in ["PAY_MONEY"]:
+            amt = card.get("value", 0)
+            player.money -= amt
+            self.log(f"💸 {player.name} zahlt {amt} DM.")
+
+        elif act in ["MOVE_TO_TILE", "goto"]:
+            target = card.get("target_tile") if ("target_tile" in card and card["target_tile"] is not None) else card.get("pos", 0)
             passed_go = (target < player.position and target != 0)
             if passed_go:
                 player.money += 200
-                self.log(f"{player.name} zieht über LOS und erhält 200 DM!")
+                self.log(f"🏃 {player.name} zieht über LOS und erhält 200 DM!")
             player.position = target
             sq = SQUARES[target]
             if sq["type"] in ["property", "station", "utility"]:
-                # Evaluate landed square
                 self.pending_action = self.evaluate_square(player, sq, roll_sum)
-        elif act == "money":
-            player.money += card["amount"]
-        elif act == "jail_free":
-            player.jail_cards += 1
-        elif act == "gotojail":
-            self.send_to_jail(player)
-        elif act == "birthday":
-            amt = card["amount"]
-            for p in self.players:
-                if p.id != player.id and not p.is_bankrupt:
-                    p.money -= amt
-                    player.money += amt
-        elif act == "pay_each":
-            amt = card["amount"]
-            for p in self.players:
-                if p.id != player.id and not p.is_bankrupt:
-                    player.money -= amt
-                    p.money += amt
-        elif act == "back3":
-            player.position = (player.position - 3) % 40
+
+        elif act in ["MOVE_BACK_N_TILES", "back3"]:
+            steps = card.get("value") or 3
+            player.position = (player.position - steps) % 40
             sq = SQUARES[player.position]
             self.pending_action = self.evaluate_square(player, sq, roll_sum)
-        elif act == "nearest_station":
+
+        elif act in ["MOVE_TO_NEAREST_RAILROAD", "nearest_station"]:
             stations = [5, 15, 25, 35]
             pos = player.position
             target = min([s for s in stations if s > pos] or [stations[0]])
             if target < pos:
                 player.money += 200
+                self.log(f"🏃 {player.name} zieht über LOS und erhält 200 DM!")
             player.position = target
             sq = SQUARES[target]
             self.pending_action = self.evaluate_square(player, sq, roll_sum)
-        elif act == "nearest_utility":
+            if self.pending_action and self.pending_action.get("type") == "PAY_RENT":
+                self.pending_action["rent"] *= 2
+                self.log(f"🚂 Doppelte Miete am Bahnhof: {self.pending_action['rent']} DM!")
+
+        elif act in ["MOVE_TO_NEAREST_UTILITY", "nearest_utility"]:
             utils = [12, 28]
             pos = player.position
             target = min([u for u in utils if u > pos] or [utils[0]])
             if target < pos:
                 player.money += 200
+                self.log(f"🏃 {player.name} zieht über LOS und erhält 200 DM!")
             player.position = target
             sq = SQUARES[target]
             self.pending_action = self.evaluate_square(player, sq, roll_sum)
-        elif act == "repairs":
-            h_cost = card.get("house", 25)
-            hot_cost = card.get("hotel", 100)
+            if self.pending_action and self.pending_action.get("type") == "PAY_RENT":
+                dice_factor = max(1, roll_sum) * 10
+                self.pending_action["rent"] = dice_factor
+                self.log(f"💡 10-facher Werk-Mietzins: {dice_factor} DM!")
+
+        elif act in ["PAY_FOR_BUILDINGS", "repairs"]:
+            h_cost = card.get("value") if ("value" in card and card["value"]) else card.get("house", 25)
+            hot_cost = card.get("extra_value") if ("extra_value" in card and card["extra_value"]) else card.get("hotel", 100)
             total = 0
             for sq_idx, st in self.board_state.items():
                 if st["owner"] == player.id:
@@ -501,7 +561,30 @@ class GameRoom:
                     else:
                         total += st["houses"] * h_cost
             player.money -= total
-            self.log(f"{player.name} zahlt {total} DM für Renovierungen.")
+            self.log(f"🏚️ {player.name} zahlt {total} DM für Gebäude-Renovierungen.")
+
+        elif act in ["PAY_EACH_PLAYER", "pay_each"]:
+            amt = card.get("value") if "value" in card else card.get("amount", 50)
+            for p in self.players:
+                if p.id != player.id and not p.is_bankrupt:
+                    player.money -= amt
+                    p.money += amt
+            self.log(f"👥 {player.name} zahlt jedem Mitspieler {amt} DM.")
+
+        elif act in ["RECEIVE_FROM_PLAYERS", "birthday"]:
+            amt = card.get("value") if "value" in card else card.get("amount", 10)
+            for p in self.players:
+                if p.id != player.id and not p.is_bankrupt:
+                    p.money -= amt
+                    player.money += amt
+            self.log(f"🎁 Jeder Mitspieler schenkt {player.name} {amt} DM!")
+
+        elif act in ["GO_TO_JAIL", "gotojail"]:
+            self.send_to_jail(player)
+
+        elif act in ["GET_OUT_OF_JAIL_FREE", "jail_free"]:
+            player.jail_cards += 1
+            self.log(f"🎟️ {player.name} erhält eine 'Gefängnis frei'-Karte.")
 
     def buy_property(self, player_id: str, sq_idx: int) -> dict:
         player = next((p for p in self.players if p.id == player_id), None)

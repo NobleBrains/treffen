@@ -58,6 +58,7 @@
                 <button class="btn-icon" id="btn-rot-left" title="Brett 90° nach links drehen">↺</button>
                 <button class="btn-icon" id="btn-rot-right" title="Brett 90° nach rechts drehen">↻</button>
                 <button class="btn-icon" id="btn-toggle-logs" title="Spielprotokoll & Chat">📜</button>
+                <button class="btn-icon" id="btn-music-toggle" title="Hintergrundmusik (Lounge) ein/ausschalten">🎵</button>
                 <button class="btn-icon" id="btn-sound-toggle" title="Ton stummschalten">🔊</button>
             </div>
         </header>
@@ -206,17 +207,24 @@
 
     <!-- 3. Chance / Community Chest Card Modal -->
     <div class="modal-overlay" id="modal-card">
-        <div class="modal-box" style="max-width:380px;">
+        <div class="modal-box" style="max-width:440px; text-align:center;">
+            <div class="modal-header" style="justify-content:center; margin-bottom:8px;">
+                <span class="modal-title" id="card-modal-title">EREIGNISKARTE</span>
+            </div>
+            <!-- Full High-Res Authentic ROM Card Image -->
+            <img id="card-modal-full-img" class="card-modal-full-img" src="" alt="Gezogene Karte" style="width:100%; max-width:410px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.55); display:none; margin:0 auto;" />
+            
+            <!-- Traditional Layout Fallback -->
             <div class="chance-chest-card" id="card-modal-container">
-                <div class="chance-card-type" id="card-modal-title">EREIGNISKARTE</div>
                 <div class="card-illustration-wrap">
                     <img id="card-modal-img" class="card-illustration-img" src="static/assets/chance_chest/illustration_monopoly_mann.png" alt="Monopoly Mann" />
                 </div>
                 <div class="chance-card-text" id="card-modal-text">Ziehe vor bis auf LOS!</div>
-                <button class="btn-action btn-buy" style="margin-top:14px; width:100%;" onclick="window.MonopolyGame.closeModal('modal-card')">
-                    OK
-                </button>
             </div>
+
+            <button class="btn-action btn-buy" style="margin-top:14px; width:100%;" onclick="window.MonopolyGame.closeModal('modal-card')">
+                OK
+            </button>
         </div>
     </div>
 
@@ -289,9 +297,10 @@
     <!-- Scripts with Cache Busting -->
     <script src="static/js/three.min.js"></script>
     <script src="static/js/OrbitControls.js"></script>
-    <script src="static/js/audio.js"></script>
-    <script src="static/js/board3d.js?v=2.8"></script>
-    <script src="static/js/game_client.js?v=2.8"></script>
+    <script src="static/js/asset_config.js?v=3.0"></script>
+    <script src="static/js/audio.js?v=3.0"></script>
+    <script src="static/js/board3d.js?v=3.0"></script>
+    <script src="static/js/game_client.js?v=3.0"></script>
 
     <script>
         function launchMonopoly() {

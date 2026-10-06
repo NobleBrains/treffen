@@ -1,0 +1,621 @@
+[
+  {
+    "index": 0,
+    "type": "GO",
+    "name_de": "LOS",
+    "name_en": "GO",
+    "color": null,
+    "salary": 200
+  },
+  {
+    "index": 1,
+    "type": "PROPERTY",
+    "name_de": "Badstraße",
+    "name_en": "Mediterranean Avenue",
+    "color": "BROWN",
+    "cost": 60,
+    "mortgage_value": 30,
+    "house_cost": 50,
+    "rents": {
+      "base": 2,
+      "1_house": 10,
+      "2_houses": 30,
+      "3_houses": 90,
+      "4_houses": 160,
+      "hotel": 250
+    },
+    "deed_texture": "01_medave_front.png"
+  },
+  {
+    "index": 2,
+    "type": "COMMUNITY_CHEST",
+    "name_de": "Gemeinschaftsfeld",
+    "name_en": "Community Chest",
+    "color": null
+  },
+  {
+    "index": 3,
+    "type": "PROPERTY",
+    "name_de": "Turmstraße",
+    "name_en": "Baltic Avenue",
+    "color": "BROWN",
+    "cost": 60,
+    "mortgage_value": 30,
+    "house_cost": 50,
+    "rents": {
+      "base": 4,
+      "1_house": 20,
+      "2_houses": 60,
+      "3_houses": 180,
+      "4_houses": 320,
+      "hotel": 450
+    },
+    "deed_texture": "02_balticave_front.png"
+  },
+  {
+    "index": 4,
+    "type": "INCOME_TAX",
+    "name_de": "Einkommensteuer",
+    "name_en": "Income Tax",
+    "color": null,
+    "tax_amount": 200
+  },
+  {
+    "index": 5,
+    "type": "RAILROAD",
+    "name_de": "Südbahnhof",
+    "name_en": "Reading Railroad",
+    "color": "RAILROAD",
+    "cost": 200,
+    "mortgage_value": 100,
+    "house_cost": 0,
+    "rents": {
+      "base": 25,
+      "1_house": 50,
+      "2_houses": 100,
+      "3_houses": 200,
+      "4_houses": 0,
+      "hotel": 0
+    },
+    "deed_texture": "03_readingrr_front.png"
+  },
+  {
+    "index": 6,
+    "type": "PROPERTY",
+    "name_de": "Chausseestraße",
+    "name_en": "Oriental Avenue",
+    "color": "LIGHT_BLUE",
+    "cost": 100,
+    "mortgage_value": 50,
+    "house_cost": 50,
+    "rents": {
+      "base": 6,
+      "1_house": 30,
+      "2_houses": 90,
+      "3_houses": 270,
+      "4_houses": 400,
+      "hotel": 550
+    },
+    "deed_texture": "04_orientalave_front.png"
+  },
+  {
+    "index": 7,
+    "type": "CHANCE",
+    "name_de": "Ereignisfeld",
+    "name_en": "Chance",
+    "color": null
+  },
+  {
+    "index": 8,
+    "type": "PROPERTY",
+    "name_de": "Elisenstraße",
+    "name_en": "Vermont Avenue",
+    "color": "LIGHT_BLUE",
+    "cost": 100,
+    "mortgage_value": 50,
+    "house_cost": 50,
+    "rents": {
+      "base": 6,
+      "1_house": 30,
+      "2_houses": 90,
+      "3_houses": 270,
+      "4_houses": 400,
+      "hotel": 550
+    },
+    "deed_texture": "05_vermontave_front.png"
+  },
+  {
+    "index": 9,
+    "type": "PROPERTY",
+    "name_de": "Poststraße",
+    "name_en": "Connecticut Avenue",
+    "color": "LIGHT_BLUE",
+    "cost": 120,
+    "mortgage_value": 60,
+    "house_cost": 50,
+    "rents": {
+      "base": 8,
+      "1_house": 40,
+      "2_houses": 100,
+      "3_houses": 300,
+      "4_houses": 450,
+      "hotel": 600
+    },
+    "deed_texture": "06_ctave_front.png"
+  },
+  {
+    "index": 10,
+    "type": "JAIL",
+    "name_de": "Im Gefängnis / Nur zu Besuch",
+    "name_en": "In Jail / Just Visiting",
+    "color": null
+  },
+  {
+    "index": 11,
+    "type": "PROPERTY",
+    "name_de": "Seestraße",
+    "name_en": "St. Charles Place",
+    "color": "PINK",
+    "cost": 140,
+    "mortgage_value": 70,
+    "house_cost": 100,
+    "rents": {
+      "base": 10,
+      "1_house": 50,
+      "2_houses": 150,
+      "3_houses": 450,
+      "4_houses": 625,
+      "hotel": 750
+    },
+    "deed_texture": "07_stcharles_front.png"
+  },
+  {
+    "index": 12,
+    "type": "UTILITY",
+    "name_de": "Elektrizitätswerk",
+    "name_en": "Electric Company",
+    "color": "UTILITY",
+    "cost": 150,
+    "mortgage_value": 75,
+    "house_cost": 0,
+    "rents": {
+      "base": 4,
+      "1_house": 10,
+      "2_houses": 0,
+      "3_houses": 0,
+      "4_houses": 0,
+      "hotel": 0
+    },
+    "deed_texture": "08_electricco_front.png"
+  },
+  {
+    "index": 13,
+    "type": "PROPERTY",
+    "name_de": "Hafenstraße",
+    "name_en": "States Avenue",
+    "color": "PINK",
+    "cost": 140,
+    "mortgage_value": 70,
+    "house_cost": 100,
+    "rents": {
+      "base": 10,
+      "1_house": 50,
+      "2_houses": 150,
+      "3_houses": 450,
+      "4_houses": 625,
+      "hotel": 750
+    },
+    "deed_texture": "08_statesave_front.png"
+  },
+  {
+    "index": 14,
+    "type": "PROPERTY",
+    "name_de": "Neue Straße",
+    "name_en": "Virginia Avenue",
+    "color": "PINK",
+    "cost": 160,
+    "mortgage_value": 80,
+    "house_cost": 100,
+    "rents": {
+      "base": 12,
+      "1_house": 60,
+      "2_houses": 180,
+      "3_houses": 500,
+      "4_houses": 700,
+      "hotel": 900
+    },
+    "deed_texture": "09_virginiaave_front.png"
+  },
+  {
+    "index": 15,
+    "type": "RAILROAD",
+    "name_de": "Westbahnhof",
+    "name_en": "Pennsylvania Railroad",
+    "color": "RAILROAD",
+    "cost": 200,
+    "mortgage_value": 100,
+    "house_cost": 0,
+    "rents": {
+      "base": 25,
+      "1_house": 50,
+      "2_houses": 100,
+      "3_houses": 200,
+      "4_houses": 0,
+      "hotel": 0
+    },
+    "deed_texture": "10_pennrr_front.png"
+  },
+  {
+    "index": 16,
+    "type": "PROPERTY",
+    "name_de": "Münchener Straße",
+    "name_en": "St. James Place",
+    "color": "ORANGE",
+    "cost": 180,
+    "mortgage_value": 90,
+    "house_cost": 100,
+    "rents": {
+      "base": 14,
+      "1_house": 70,
+      "2_houses": 200,
+      "3_houses": 550,
+      "4_houses": 750,
+      "hotel": 950
+    },
+    "deed_texture": "11_stjames_front.png"
+  },
+  {
+    "index": 17,
+    "type": "COMMUNITY_CHEST",
+    "name_de": "Gemeinschaftsfeld",
+    "name_en": "Community Chest",
+    "color": null
+  },
+  {
+    "index": 18,
+    "type": "PROPERTY",
+    "name_de": "Wiener Straße",
+    "name_en": "Tennessee Avenue",
+    "color": "ORANGE",
+    "cost": 180,
+    "mortgage_value": 90,
+    "house_cost": 100,
+    "rents": {
+      "base": 14,
+      "1_house": 70,
+      "2_houses": 200,
+      "3_houses": 550,
+      "4_houses": 750,
+      "hotel": 950
+    },
+    "deed_texture": "11_tennave_front.png"
+  },
+  {
+    "index": 19,
+    "type": "PROPERTY",
+    "name_de": "Berliner Straße",
+    "name_en": "New York Avenue",
+    "color": "ORANGE",
+    "cost": 200,
+    "mortgage_value": 100,
+    "house_cost": 100,
+    "rents": {
+      "base": 16,
+      "1_house": 80,
+      "2_houses": 220,
+      "3_houses": 600,
+      "4_houses": 800,
+      "hotel": 1000
+    },
+    "deed_texture": "12_nyave_front.png"
+  },
+  {
+    "index": 20,
+    "type": "FREE_PARKING",
+    "name_de": "Frei Parken",
+    "name_en": "Free Parking",
+    "color": null
+  },
+  {
+    "index": 21,
+    "type": "PROPERTY",
+    "name_de": "Theaterstraße",
+    "name_en": "Kentucky Avenue",
+    "color": "RED",
+    "cost": 220,
+    "mortgage_value": 110,
+    "house_cost": 150,
+    "rents": {
+      "base": 18,
+      "1_house": 90,
+      "2_houses": 250,
+      "3_houses": 700,
+      "4_houses": 875,
+      "hotel": 1050
+    },
+    "deed_texture": "13_kyave_front.png"
+  },
+  {
+    "index": 22,
+    "type": "CHANCE",
+    "name_de": "Ereignisfeld",
+    "name_en": "Chance",
+    "color": null
+  },
+  {
+    "index": 23,
+    "type": "PROPERTY",
+    "name_de": "Museumstraße",
+    "name_en": "Indiana Avenue",
+    "color": "RED",
+    "cost": 220,
+    "mortgage_value": 110,
+    "house_cost": 150,
+    "rents": {
+      "base": 18,
+      "1_house": 90,
+      "2_houses": 250,
+      "3_houses": 700,
+      "4_houses": 875,
+      "hotel": 1050
+    },
+    "deed_texture": "14_indianaave_front.png"
+  },
+  {
+    "index": 24,
+    "type": "PROPERTY",
+    "name_de": "Opernplatz",
+    "name_en": "Illinois Avenue",
+    "color": "RED",
+    "cost": 240,
+    "mortgage_value": 120,
+    "house_cost": 150,
+    "rents": {
+      "base": 20,
+      "1_house": 100,
+      "2_houses": 300,
+      "3_houses": 750,
+      "4_houses": 925,
+      "hotel": 1100
+    },
+    "deed_texture": "15_illinoisave_front.png"
+  },
+  {
+    "index": 25,
+    "type": "RAILROAD",
+    "name_de": "Nordbahnhof",
+    "name_en": "B. & O. Railroad",
+    "color": "RAILROAD",
+    "cost": 200,
+    "mortgage_value": 100,
+    "house_cost": 0,
+    "rents": {
+      "base": 25,
+      "1_house": 50,
+      "2_houses": 100,
+      "3_houses": 200,
+      "4_houses": 0,
+      "hotel": 0
+    },
+    "deed_texture": "16_borr_front.png"
+  },
+  {
+    "index": 26,
+    "type": "PROPERTY",
+    "name_de": "Lessingstraße",
+    "name_en": "Atlantic Avenue",
+    "color": "YELLOW",
+    "cost": 260,
+    "mortgage_value": 130,
+    "house_cost": 150,
+    "rents": {
+      "base": 22,
+      "1_house": 110,
+      "2_houses": 330,
+      "3_houses": 800,
+      "4_houses": 975,
+      "hotel": 1150
+    },
+    "deed_texture": "17_atlanticave_front.png"
+  },
+  {
+    "index": 27,
+    "type": "PROPERTY",
+    "name_de": "Schillerstraße",
+    "name_en": "Ventnor Avenue",
+    "color": "YELLOW",
+    "cost": 260,
+    "mortgage_value": 130,
+    "house_cost": 150,
+    "rents": {
+      "base": 22,
+      "1_house": 110,
+      "2_houses": 330,
+      "3_houses": 800,
+      "4_houses": 975,
+      "hotel": 1150
+    },
+    "deed_texture": "18_ventnorave_front.png"
+  },
+  {
+    "index": 28,
+    "type": "UTILITY",
+    "name_de": "Wasserwerk",
+    "name_en": "Water Works",
+    "color": "UTILITY",
+    "cost": 150,
+    "mortgage_value": 75,
+    "house_cost": 0,
+    "rents": {
+      "base": 4,
+      "1_house": 10,
+      "2_houses": 0,
+      "3_houses": 0,
+      "4_houses": 0,
+      "hotel": 0
+    },
+    "deed_texture": "18_water_front.png"
+  },
+  {
+    "index": 29,
+    "type": "PROPERTY",
+    "name_de": "Goethestraße",
+    "name_en": "Marvin Gardens",
+    "color": "YELLOW",
+    "cost": 280,
+    "mortgage_value": 140,
+    "house_cost": 150,
+    "rents": {
+      "base": 24,
+      "1_house": 120,
+      "2_houses": 360,
+      "3_houses": 850,
+      "4_houses": 1025,
+      "hotel": 1200
+    },
+    "deed_texture": "19_marvingard_front.png"
+  },
+  {
+    "index": 30,
+    "type": "GO_TO_JAIL",
+    "name_de": "Gehen Sie in das Gefängnis",
+    "name_en": "Go to Jail",
+    "color": null
+  },
+  {
+    "index": 31,
+    "type": "PROPERTY",
+    "name_de": "Rathausplatz",
+    "name_en": "Pacific Avenue",
+    "color": "GREEN",
+    "cost": 300,
+    "mortgage_value": 150,
+    "house_cost": 200,
+    "rents": {
+      "base": 26,
+      "1_house": 130,
+      "2_houses": 390,
+      "3_houses": 900,
+      "4_houses": 1100,
+      "hotel": 1275
+    },
+    "deed_texture": "20_pacificave_front.png"
+  },
+  {
+    "index": 32,
+    "type": "PROPERTY",
+    "name_de": "Hauptstraße",
+    "name_en": "North Carolina Avenue",
+    "color": "GREEN",
+    "cost": 300,
+    "mortgage_value": 150,
+    "house_cost": 200,
+    "rents": {
+      "base": 26,
+      "1_house": 130,
+      "2_houses": 390,
+      "3_houses": 900,
+      "4_houses": 1100,
+      "hotel": 1275
+    },
+    "deed_texture": "21_ncarolinaave_front.png"
+  },
+  {
+    "index": 33,
+    "type": "COMMUNITY_CHEST",
+    "name_de": "Gemeinschaftsfeld",
+    "name_en": "Community Chest",
+    "color": null
+  },
+  {
+    "index": 34,
+    "type": "PROPERTY",
+    "name_de": "Bahnhofstraße",
+    "name_en": "Pennsylvania Avenue",
+    "color": "GREEN",
+    "cost": 320,
+    "mortgage_value": 160,
+    "house_cost": 200,
+    "rents": {
+      "base": 28,
+      "1_house": 150,
+      "2_houses": 450,
+      "3_houses": 1000,
+      "4_houses": 1200,
+      "hotel": 1400
+    },
+    "deed_texture": "22_pennave_front.png"
+  },
+  {
+    "index": 35,
+    "type": "RAILROAD",
+    "name_de": "Hauptbahnhof",
+    "name_en": "Short Line",
+    "color": "RAILROAD",
+    "cost": 200,
+    "mortgage_value": 100,
+    "house_cost": 0,
+    "rents": {
+      "base": 25,
+      "1_house": 50,
+      "2_houses": 100,
+      "3_houses": 200,
+      "4_houses": 0,
+      "hotel": 0
+    },
+    "deed_texture": "23_shortlinerr_front.png"
+  },
+  {
+    "index": 36,
+    "type": "CHANCE",
+    "name_de": "Ereignisfeld",
+    "name_en": "Chance",
+    "color": null
+  },
+  {
+    "index": 37,
+    "type": "PROPERTY",
+    "name_de": "Parkstraße",
+    "name_en": "Park Place",
+    "color": "DARK_BLUE",
+    "cost": 350,
+    "mortgage_value": 175,
+    "house_cost": 200,
+    "rents": {
+      "base": 35,
+      "1_house": 175,
+      "2_houses": 500,
+      "3_houses": 1100,
+      "4_houses": 1300,
+      "hotel": 1500
+    },
+    "deed_texture": "24_parkplace_front.png"
+  },
+  {
+    "index": 38,
+    "type": "LUXURY_TAX",
+    "name_de": "Zusatzsteuer",
+    "name_en": "Luxury Tax",
+    "color": null,
+    "tax_amount": 100
+  },
+  {
+    "index": 39,
+    "type": "PROPERTY",
+    "name_de": "Schlossallee",
+    "name_en": "Boardwalk",
+    "color": "DARK_BLUE",
+    "cost": 400,
+    "mortgage_value": 200,
+    "house_cost": 200,
+    "rents": {
+      "base": 50,
+      "1_house": 200,
+      "2_houses": 600,
+      "3_houses": 1400,
+      "4_houses": 1700,
+      "hotel": 2000
+    },
+    "deed_texture": "25_boardwalk_front.png"
+  }
+]

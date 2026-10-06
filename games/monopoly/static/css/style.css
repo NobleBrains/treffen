@@ -1526,3 +1526,49 @@ html, body {
 .btn-leave-seat-focus:hover .seat-focus-icon {
     transform: translateX(-3px);
 }
+
+/* Authentic Token Icons & Chance/Chest Card Presentation */
+.hud-pod-token-img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+}
+
+.sidebar-token-img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
+}
+
+.token-mini-img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
+    vertical-align: middle;
+}
+
+.token-choice-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    margin-bottom: 6px;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.5));
+    transition: transform 0.2s ease;
+}
+
+.token-choice:hover .token-choice-img,
+.token-choice.selected .token-choice-img {
+    transform: scale(1.12);
+}
+
+.card-modal-full-img {
+    width: 100%;
+    max-width: 420px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+    display: none;
+    margin: 0 auto;
+}

@@ -22,16 +22,25 @@
     const Sound = window.MonopolySound;
     const Board3D = window.MonopolyBoard3D;
 
+    function resolveUrl(path) {
+        if (window.MonopolyAssets && window.MonopolyAssets.resolveUrl) {
+            return window.MonopolyAssets.resolveUrl(path);
+        }
+        let p = window.location.pathname;
+        if (!p.endsWith('/')) p = p.substring(0, p.lastIndexOf('/') + 1);
+        return p + (path.startsWith('/') ? path.substring(1) : path);
+    }
+
     // Tokens metadata
-    const TOKENS = [
-        { id: 'dog', name: 'Hund', icon: '🐕' },
-        { id: 'hat', name: 'Zylinder', icon: '🎩' },
-        { id: 'car', name: 'Rennwagen', icon: '🏎️' },
-        { id: 'ship', name: 'Schiff', icon: '🚢' },
-        { id: 'boot', name: 'Stiefel', icon: '👢' },
-        { id: 'iron', name: 'Bügeleisen', icon: '🪙' },
-        { id: 'thimble', name: 'Fingerhut', icon: '🧵' },
-        { id: 'wheelbarrow', name: 'Schubkarre', icon: '🛒' }
+    const TOKENS = (window.MonopolyAssets && window.MonopolyAssets.tokens) ? window.MonopolyAssets.tokens : [
+        { id: 'dog', name: 'Hund', icon: '🐕', iconImg: 'static/assets/tokens/hund_icon.png' },
+        { id: 'hat', name: 'Zylinder', icon: '🎩', iconImg: 'static/assets/tokens/zylinder_icon.png' },
+        { id: 'car', name: 'Rennwagen', icon: '🏎️', iconImg: 'static/assets/tokens/rennwagen_icon.png' },
+        { id: 'ship', name: 'Schiff', icon: '🚢', iconImg: 'static/assets/tokens/schlachtschiff_icon.png' },
+        { id: 'boot', name: 'Stiefel', icon: '👢', iconImg: 'static/assets/tokens/schuh_icon.png' },
+        { id: 'iron', name: 'Bügeleisen', icon: '🪙', iconImg: 'static/assets/tokens/buegeleisen_icon.png' },
+        { id: 'thimble', name: 'Fingerhut', icon: '🧵', iconImg: 'static/assets/tokens/fingerhut_icon.png' },
+        { id: 'wheelbarrow', name: 'Schubkarre', icon: '🛒', iconImg: 'static/assets/tokens/schubkarre_icon.png' }
     ];
 
     const COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#e67e22', '#9b59b6', '#1abc9c', '#fd79a8'];
@@ -241,7 +250,8 @@
                 window.MonopolyBoard3D.syncBuildings(gameState.board_state);
                 window.MonopolyBoard3D.syncTableDeeds(gameState.board_state, gameState.players, playerId);
                 if (gameState.last_card && window.MonopolyBoard3D.showDrawnCard) {
-                    window.MonopolyBoard3D.showDrawnCard(gameState.last_card.deck, gameState.last_card.card.text);
+                    const lCardImg = gameState.last_card.image || (gameState.last_card.card && (gameState.last_card.card.image || gameState.last_card.card.card_image_filename));
+                    window.MonopolyBoard3D.showDrawnCard(gameState.last_card.deck, (gameState.last_card.card && gameState.last_card.card.text) || '', lCardImg);
                 }
             }
 
@@ -292,13 +302,14 @@
                 if (msg.card) {
                     const dDeck = msg.deck || 'Ereignis';
                     const dText = msg.card.text;
+                    const dImg = msg.card.image || msg.card.card_image_filename;
                     const engine = window.MonopolyBoard3D || Board3D;
                     if (engine && engine.showDrawnCard) {
-                        engine.showDrawnCard(dDeck, dText);
+                        engine.showDrawnCard(dDeck, dText, dImg);
                     }
                     const isMyTurn = (gameState && gameState.current_player && gameState.current_player.id === playerId);
                     if (isMyTurn) {
-                        showCardModal(dDeck, dText);
+                        showCardModal(dDeck, dText, dImg);
                     }
                 }
                 break;
@@ -325,9 +336,10 @@
         // Check if pending action is a drawn card
         if (gameState && gameState.pending_action && gameState.pending_action.type === 'CARD') {
             const cAct = gameState.pending_action;
+            const cImg = cAct.card ? (cAct.card.image || cAct.card.card_image_filename) : null;
             const engine = window.MonopolyBoard3D || Board3D;
             if (engine && engine.showDrawnCard) {
-                engine.showDrawnCard(cAct.deck, cAct.card.text);
+                engine.showDrawnCard(cAct.deck, (cAct.card && cAct.card.text) || '', cImg);
             }
         }
     }
@@ -350,12 +362,13 @@
                                 if (Sound) Sound.playCard();
                                 const dDeck = res.action.deck || 'Ereignis';
                                 const dText = (res.action.card && res.action.card.text) ? res.action.card.text : 'Karte';
+                                const dImg = res.action.card ? (res.action.card.image || res.action.card.card_image_filename) : null;
                                 const engine = window.MonopolyBoard3D || Board3D;
                                 if (engine && engine.showDrawnCard) {
-                                    engine.showDrawnCard(dDeck, dText);
+                                    engine.showDrawnCard(dDeck, dText, dImg);
                                 }
                                 if (isMyTurn) {
-                                    showCardModal(dDeck, dText);
+                                    showCardModal(dDeck, dText, dImg);
                                 }
                             } else if (res.action.type === 'BUY_OR_AUCTION') {
                                 if (isMyTurn && res.action.square) {
@@ -405,12 +418,13 @@
         if (listEl) {
             listEl.innerHTML = gameState.players.map(p => {
                 const tObj = TOKENS.find(t => t.id === p.token) || { icon: '♟️', name: p.token };
+                const tokenGraphic = tObj.iconImg ? `<img src="${resolveUrl(tObj.iconImg)}" class="token-mini-img" alt="${tObj.name}" />` : tObj.icon;
                 return `
                     <div class="lobby-player-row">
                         <div style="display:flex; align-items:center; gap:8px;">
                             <div class="player-dot" style="background:${p.color};"></div>
                             <span style="font-weight:700;">${p.name} ${p.id === playerId ? '(Du)' : ''}</span>
-                            <span style="font-size:12px; color:var(--text-muted);">${tObj.icon} ${tObj.name}</span>
+                            <span style="font-size:12px; color:var(--text-muted); display:inline-flex; align-items:center; gap:4px;">${tokenGraphic} ${tObj.name}</span>
                         </div>
                         <div>
                             ${p.id === gameState.host_id ? '<span style="font-size:10px; background:#f39c12; color:#000; padding:2px 6px; border-radius:4px; font-weight:700;">HOST</span>' : ''}
@@ -452,12 +466,13 @@
                 const isActive = (currPlayer && currPlayer.id === p.id);
                 const isMe = (p.id === playerId);
                 const tObj = TOKENS.find(t => t.id === p.token) || { icon: '♟️', name: p.token };
+                const tokenGraphic = tObj.iconImg ? `<img src="${resolveUrl(tObj.iconImg)}" class="hud-pod-token-img" alt="${tObj.name}" />` : `<span class="hud-pod-token">${tObj.icon}</span>`;
                 return `
                     <div class="hud-player-pod ${isActive ? 'active-turn' : ''} ${isMe ? 'is-me' : ''} ${p.is_bankrupt ? 'bankrupt' : ''}" 
                          onclick="window.MonopolyGame.focusPlayerSeat('${p.id}')"
                          title="${p.name}: Klicke für Tisch-Karten Nahansicht">
                         <div class="hud-pod-avatar" style="border-color:${p.color};">
-                            <span class="hud-pod-token">${tObj.icon}</span>
+                            ${tokenGraphic}
                             ${p.in_jail ? '<span class="hud-jail-tag">⛓️</span>' : ''}
                         </div>
                         <div class="hud-pod-details">
@@ -478,6 +493,7 @@
                 const isMe = (p.id === playerId);
                 const tObj = TOKENS.find(t => t.id === p.token) || { icon: '♟️', name: p.token };
                 const sqName = squaresData[p.position] ? squaresData[p.position].name : 'LOS';
+                const tokenGraphic = tObj.iconImg ? `<img src="${resolveUrl(tObj.iconImg)}" class="sidebar-token-img" alt="${tObj.name}" />` : `<span class="player-token-label">${tObj.icon}</span>`;
 
                 return `
                     <div class="player-card ${isActive ? 'active' : ''} ${isMe ? 'is-me' : ''} ${p.is_bankrupt ? 'bankrupt' : ''}" onclick="window.MonopolyGame.showPlayerPortfolio('${p.id}')">
@@ -486,7 +502,7 @@
                                 <div class="player-dot" style="background:${p.color};"></div>
                                 <span class="player-name">${p.name} ${isMe ? '(Du)' : ''}</span>
                             </div>
-                            <span class="player-token-label">${tObj.icon}</span>
+                            ${tokenGraphic}
                         </div>
                         <div class="player-cash">
                             <span>💵</span> ${p.money} DM
@@ -656,23 +672,29 @@
         }
     }
 
-    // Show Card Modal (Ereignis- / Gemeinschaftskarte with Uncle Pennybags Illustration)
-    function showCardModal(deckType, text) {
+    // Show Card Modal (Ereignis- / Gemeinschaftskarte with Authentic ROM Graphic or Illustration)
+    function showCardModal(deckType, text, cardImage) {
         const titleEl = document.getElementById('card-modal-title');
         const containerEl = document.getElementById('card-modal-container');
         const textEl = document.getElementById('card-modal-text');
         const imgEl = document.getElementById('card-modal-img');
+        const fullCardImgEl = document.getElementById('card-modal-full-img');
 
         const isChest = (deckType || '').toLowerCase().includes('gemein');
         if (titleEl) titleEl.textContent = isChest ? 'GEMEINSCHAFTSKARTE' : 'EREIGNISKARTE';
-        if (containerEl) {
-            containerEl.className = 'chance-chest-card ' + (isChest ? 'chest' : 'chance');
-        }
-        if (textEl) {
-            textEl.textContent = text || '';
-        }
-        if (imgEl) {
-            imgEl.src = getCardIllustration(text);
+
+        if (cardImage && fullCardImgEl) {
+            fullCardImgEl.src = resolveUrl('static/assets/chance_chest/cards/' + cardImage);
+            fullCardImgEl.style.display = 'block';
+            if (containerEl) containerEl.style.display = 'none';
+        } else {
+            if (fullCardImgEl) fullCardImgEl.style.display = 'none';
+            if (containerEl) {
+                containerEl.style.display = 'block';
+                containerEl.className = 'chance-chest-card ' + (isChest ? 'chest' : 'chance');
+            }
+            if (textEl) textEl.textContent = text || '';
+            if (imgEl) imgEl.src = getCardIllustration(text);
         }
 
         openModal('modal-card');
@@ -985,7 +1007,7 @@
             if (tokenGrid) {
                 tokenGrid.innerHTML = TOKENS.map(t => `
                     <div class="token-choice ${t.id === selectedToken ? 'selected' : ''}" data-token="${t.id}" onclick="window.MonopolyGame.selectToken('${t.id}')">
-                        <span class="token-icon-3d">${t.icon}</span>
+                        ${t.iconImg ? `<img src="${resolveUrl(t.iconImg)}" class="token-choice-img" alt="${t.name}" />` : `<span class="token-icon-3d">${t.icon}</span>`}
                         <span>${t.name}</span>
                     </div>
                 `).join('');
@@ -1132,12 +1154,28 @@
                 if (engine) engine.rotateBoardBy(90);
             };
 
-            // Mute toggle
+            // Mute toggle (SFX)
             const btnMute = document.getElementById('btn-sound-toggle');
             if (btnMute && Sound) {
+                btnMute.textContent = Sound.isMuted() ? '🔇' : '🔊';
                 btnMute.onclick = () => {
                     const isMuted = Sound.toggleMute();
                     btnMute.textContent = isMuted ? '🔇' : '🔊';
+                };
+            }
+
+            // Music toggle (BGM)
+            const btnMusic = document.getElementById('btn-music-toggle');
+            if (btnMusic && Sound) {
+                const updateMusicBtn = () => {
+                    const active = Sound.isMusicEnabled();
+                    btnMusic.textContent = active ? '🎵' : '🔇';
+                    btnMusic.title = active ? 'Musik stummschalten' : 'Hintergrundmusik abspielen';
+                };
+                updateMusicBtn();
+                btnMusic.onclick = () => {
+                    Sound.toggleMusic();
+                    updateMusicBtn();
                 };
             }
 

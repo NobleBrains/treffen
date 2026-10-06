@@ -466,19 +466,35 @@
         ctx.fillText(line.trim(), x, curY);
     }
 
-    function showDrawnCard(deck, text) {
+    function showDrawnCard(deck, text, cardImage) {
         const isChest = (deck || '').toLowerCase().includes('gemein');
         const key = isChest ? 'Gemeinschaft' : 'Ereignis';
-        lastDrawnCards[key] = text;
+        lastDrawnCards[key] = { text: text, image: cardImage };
 
         const mesh = drawnCardMeshes[key];
         if (!mesh) return;
 
-        const tex = createDrawnCardCanvasTexture(key, text);
-        mesh.material.map = tex;
-        mesh.material.needsUpdate = true;
+        if (cardImage) {
+            const cardPath = (window.MonopolyAssets && window.MonopolyAssets.resolveUrl)
+                ? window.MonopolyAssets.resolveUrl('static/assets/chance_chest/cards/' + cardImage)
+                : 'static/assets/chance_chest/cards/' + cardImage;
+            const loader = new THREE.TextureLoader();
+            loader.load(cardPath, function(tex) {
+                tex.colorSpace = THREE.SRGBColorSpace || THREE.sRGBEncoding;
+                tex.generateMipmaps = true;
+                tex.minFilter = THREE.LinearMipmapLinearFilter;
+                mesh.material.map = tex;
+                mesh.material.needsUpdate = true;
+            });
+        } else {
+            const tex = createDrawnCardCanvasTexture(key, text);
+            mesh.material.map = tex;
+            mesh.material.needsUpdate = true;
+        }
+
         mesh.visible = true;
         mesh.userData.text = text;
+        mesh.userData.cardImage = cardImage;
         mesh.rotation.z = -Math.PI / 4 + 0.03;
 
         // Subtle pop-in animation
@@ -878,11 +894,15 @@
                         }
                         if (cur && cur.userData && (cur.userData.type === 'board_deck' || cur.userData.type === 'drawn_card')) {
                             const dDeck = cur.userData.deck;
-                            const dText = cur.userData.text || lastDrawnCards[dDeck];
-                            if (dText && window.MonopolyGame && window.MonopolyGame.showCardModal) {
-                                window.MonopolyGame.showCardModal(dDeck, dText);
-                            } else if (window.MonopolyGame && window.MonopolyGame.showCardModal) {
-                                window.MonopolyGame.showCardModal(dDeck, dDeck === 'Gemeinschaft' ? 'Gemeinschaftskarten: Ziehe eine Karte bei Betreten des Feldes!' : 'Ereigniskarten: Ziehe eine Karte bei Betreten des Feldes!');
+                            const cardEntry = lastDrawnCards[dDeck];
+                            const dText = (typeof cardEntry === 'object' && cardEntry) ? cardEntry.text : (cur.userData.text || cardEntry);
+                            const dImg = (typeof cardEntry === 'object' && cardEntry) ? cardEntry.image : (cur.userData.cardImage || '');
+                            if (window.MonopolyGame && window.MonopolyGame.showCardModal) {
+                                window.MonopolyGame.showCardModal(
+                                    dDeck,
+                                    dText || (dDeck === 'Gemeinschaft' ? 'Gemeinschaftskarten: Ziehe eine Karte bei Betreten des Feldes!' : 'Ereigniskarten: Ziehe eine Karte bei Betreten des Feldes!'),
+                                    dImg
+                                );
                             }
                             if (window.MonopolySound) window.MonopolySound.playCard();
                             return;
@@ -1185,7 +1205,11 @@
                 const toPos = new THREE.Vector3(nextCenter.x, 0.09, nextCenter.z);
 
                 if (window.MonopolySound) {
-                    window.MonopolySound.playHop();
+                    if (window.MonopolySound.playTokenMove) {
+                        window.MonopolySound.playTokenMove(player.token);
+                    } else {
+                        window.MonopolySound.playHop();
+                    }
                 }
 
                 const startTime = performance.now();

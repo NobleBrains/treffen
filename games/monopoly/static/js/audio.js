@@ -1,15 +1,26 @@
 /**
- * Monopoly Web Edition - Audio System (Authentic ROM Sounds & Web Audio Fallback)
- * Spielt die originalen Soundeffekte aus der Monopoly ROM ab.
+ * Monopoly Web Edition - Audio System (Authentic ROM Sounds & BGM Lounge Music)
+ * Spielt die originalen Soundeffekte und BGM-Tracks aus der Monopoly ROM ab.
  */
 
 (function(window) {
     'use strict';
 
     let isMuted = false;
+    let isMusicEnabled = false;
     try {
         isMuted = localStorage.getItem('monopoly_muted') === 'true';
+        isMusicEnabled = localStorage.getItem('monopoly_bgm_enabled') === 'true';
     } catch(e) {}
+
+    const resolveUrl = function(path) {
+        if (window.MonopolyAssets && window.MonopolyAssets.resolveUrl) {
+            return window.MonopolyAssets.resolveUrl(path);
+        }
+        let p = window.location.pathname;
+        if (!p.endsWith('/')) p = p.substring(0, p.lastIndexOf('/') + 1);
+        return p + (path.startsWith('/') ? path.substring(1) : path);
+    };
 
     // Preloaded HTML5 Audio objects for zero-latency playback
     const soundFiles = {
@@ -32,21 +43,38 @@
         lose: 'static/assets/audio/spiel_verloren.wav',
         confirm: 'static/assets/audio/klick_bestaetigen.wav',
         select: 'static/assets/audio/klick_auswaehlen.wav',
-        chat: 'static/assets/audio/chat_nachricht.wav'
+        chat: 'static/assets/audio/chat_nachricht.wav',
+        swipe: 'static/assets/audio/wischen.wav'
     };
 
-    const audioCache = {};
+    const tokenSounds = {
+        dog: 'static/assets/audio/figur_hund_laufen.wav',
+        car: 'static/assets/audio/figur_auto_fahren.wav',
+        ship: 'static/assets/audio/figur_schiff_fahren.wav',
+        boot: 'static/assets/audio/figur_schuh_ziehen.wav',
+        iron: 'static/assets/audio/figur_buegeleisen_ziehen.wav',
+        thimble: 'static/assets/audio/figur_fingerhut_ziehen.wav',
+        wheelbarrow: 'static/assets/audio/figur_schubkarre_ziehen.wav',
+        hat: 'static/assets/audio/figur_zylinder_ziehen.wav'
+    };
 
-    function playAudioFile(url, volume = 0.8) {
+    const bgmTracks = [
+        'static/assets/audio/music/monopoly_theme_lounge_m1.mp3',
+        'static/assets/audio/music/monopoly_theme_smooth_m2.mp3',
+        'static/assets/audio/music/monopoly_theme_swing_m3.mp3'
+    ];
+
+    let currentBgmAudio = null;
+    let currentBgmIndex = 0;
+
+    function playAudioFile(relPath, volume = 0.8) {
         if (isMuted) return;
         try {
-            const audio = new Audio(url);
+            const audio = new Audio(resolveUrl(relPath));
             audio.volume = Math.max(0, Math.min(1, volume));
             const p = audio.play();
             if (p && p.catch) {
-                p.catch(() => {
-                    // Browser autoplay policy might block before interaction
-                });
+                p.catch(() => {});
             }
         } catch (e) {}
     }
@@ -64,6 +92,33 @@
         return audioCtx;
     }
 
+    function initOrUpdateBgm() {
+        if (!isMusicEnabled) {
+            if (currentBgmAudio) {
+                currentBgmAudio.pause();
+                currentBgmAudio = null;
+            }
+            return;
+        }
+
+        if (currentBgmAudio) {
+            if (currentBgmAudio.paused) {
+                currentBgmAudio.play().catch(() => {});
+            }
+            return;
+        }
+
+        try {
+            const trackPath = bgmTracks[currentBgmIndex % bgmTracks.length];
+            currentBgmAudio = new Audio(resolveUrl(trackPath));
+            currentBgmAudio.volume = 0.28;
+            currentBgmAudio.loop = true;
+            currentBgmAudio.play().catch(() => {
+                // Browser user interaction required
+            });
+        } catch (e) {}
+    }
+
     const Sound = {
         isMuted: function() {
             return isMuted;
@@ -77,6 +132,36 @@
             return isMuted;
         },
 
+        isMusicEnabled: function() {
+            return isMusicEnabled;
+        },
+
+        toggleMusic: function() {
+            isMusicEnabled = !isMusicEnabled;
+            try {
+                localStorage.setItem('monopoly_bgm_enabled', isMusicEnabled);
+            } catch(e) {}
+            initOrUpdateBgm();
+            return isMusicEnabled;
+        },
+
+        nextMusicTrack: function() {
+            if (currentBgmAudio) {
+                currentBgmAudio.pause();
+                currentBgmAudio = null;
+            }
+            currentBgmIndex = (currentBgmIndex + 1) % bgmTracks.length;
+            if (isMusicEnabled) {
+                initOrUpdateBgm();
+            }
+        },
+
+        startMusicIfEnabled: function() {
+            if (isMusicEnabled && (!currentBgmAudio || currentBgmAudio.paused)) {
+                initOrUpdateBgm();
+            }
+        },
+
         // Authentic Dice Roll sound
         playDiceRoll: function() {
             if (isMuted) return;
@@ -88,7 +173,17 @@
             }, 600);
         },
 
-        // Token step hop sound
+        // Token Movement SFX (Specific per Token)
+        playTokenMove: function(tokenType) {
+            if (isMuted) return;
+            if (tokenType && tokenSounds[tokenType]) {
+                playAudioFile(tokenSounds[tokenType], 0.75);
+            } else {
+                Sound.playHop();
+            }
+        },
+
+        // Token step hop sound (synthesized fallback)
         playHop: function() {
             if (isMuted) return;
             const ctx = getAudioContext();
@@ -168,8 +263,22 @@
         playChat: function() {
             if (isMuted) return;
             playAudioFile(soundFiles.chat, 0.6);
+        },
+
+        playSwipe: function() {
+            if (isMuted) return;
+            playAudioFile(soundFiles.swipe, 0.5);
         }
     };
+
+    // Try starting music on first interaction if enabled
+    function onFirstUserInteraction() {
+        Sound.startMusicIfEnabled();
+        window.removeEventListener('click', onFirstUserInteraction);
+        window.removeEventListener('touchstart', onFirstUserInteraction);
+    }
+    window.addEventListener('click', onFirstUserInteraction);
+    window.addEventListener('touchstart', onFirstUserInteraction);
 
     window.MonopolySound = Sound;
 })(window);
