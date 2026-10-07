@@ -302,9 +302,9 @@
         const ereignisBackTex = texLoader.load('static/assets/chance_chest/deck_ereignis_back.png');
         ereignisBackTex.colorSpace = THREE.SRGBColorSpace || THREE.sRGBEncoding;
 
-        const deckW = 1.05;
+        const deckW = 1.58;
         const deckH = 0.12;
-        const deckD = 1.58;
+        const deckD = 1.05;
         const deckGeo = new THREE.BoxGeometry(deckW, deckH, deckD);
 
         const edgeMat = new THREE.MeshStandardMaterial({ map: stackEdgeTex, roughness: 0.85 });
@@ -320,8 +320,8 @@
         gemDeck.userData = { type: 'board_deck', deck: 'Gemeinschaft', baseY: 0.09 + deckH / 2 };
         boardDecksGroup.add(gemDeck);
 
-        // Gemeinschaft Drawn Card Plane - Sits face-up on top of the deck stack
-        const drawnGeo = new THREE.PlaneGeometry(1.02, 1.55);
+        // Gemeinschaft Drawn Card Plane - Sits face-up on top of the deck stack (Landscape: 1.55 x 1.02 matching 456x300)
+        const drawnGeo = new THREE.PlaneGeometry(1.55, 1.02);
         const gemDrawnMat = new THREE.MeshStandardMaterial({
             color: 0xffffff,
             roughness: 0.32,
@@ -348,13 +348,13 @@
         erDeck.userData = { type: 'board_deck', deck: 'Ereignis', baseY: 0.09 + deckH / 2 };
         boardDecksGroup.add(erDeck);
 
-        // Ereignis Drawn Card Plane - Sits face-up on top of the deck stack
+        // Ereignis Drawn Card Plane - Sits face-up on top of the deck stack (Landscape: 1.55 x 1.02 matching 456x300)
         const erDrawnMat = new THREE.MeshStandardMaterial({
             color: 0xffffff,
             roughness: 0.32,
             side: THREE.DoubleSide
         });
-        const erDrawnMesh = new THREE.Mesh(drawnGeo, erDrawnMat);
+        const erDrawnMesh = new THREE.Mesh(drawnGeo.clone(), erDrawnMat);
         erDrawnMesh.position.set(2.205, 0.09 + deckH + 0.005, 2.205);
         erDrawnMesh.rotation.x = -Math.PI / 2;
         erDrawnMesh.rotation.z = -Math.PI / 4;
@@ -485,11 +485,22 @@
                 tex.minFilter = THREE.LinearMipmapLinearFilter;
                 mesh.material.map = tex;
                 mesh.material.needsUpdate = true;
+
+                // Dynamically fit geometry to texture aspect ratio
+                if (tex.image && tex.image.width && tex.image.height) {
+                    const isLandscape = tex.image.width >= tex.image.height;
+                    const w = isLandscape ? 1.55 : 1.02;
+                    const h = isLandscape ? 1.02 : 1.55;
+                    if (mesh.geometry) mesh.geometry.dispose();
+                    mesh.geometry = new THREE.PlaneGeometry(w, h);
+                }
             });
         } else {
             const tex = createDrawnCardCanvasTexture(key, text);
             mesh.material.map = tex;
             mesh.material.needsUpdate = true;
+            if (mesh.geometry) mesh.geometry.dispose();
+            mesh.geometry = new THREE.PlaneGeometry(1.55, 1.02);
         }
 
         mesh.visible = true;
@@ -511,6 +522,15 @@
             }
         }
         requestAnimationFrame(dropAnim);
+    }
+
+    function hideDrawnCards() {
+        for (const [key, mesh] of Object.entries(drawnCardMeshes)) {
+            if (mesh) {
+                mesh.visible = false;
+            }
+        }
+        lastDrawnCards = {};
     }
 
     // 3D Models Preloader
@@ -901,10 +921,10 @@
                                 window.MonopolyGame.showCardModal(
                                     dDeck,
                                     dText || (dDeck === 'Gemeinschaft' ? 'Gemeinschaftskarten: Ziehe eine Karte bei Betreten des Feldes!' : 'Ereigniskarten: Ziehe eine Karte bei Betreten des Feldes!'),
-                                    dImg
+                                    dImg,
+                                    false
                                 );
                             }
-                            if (window.MonopolySound) window.MonopolySound.playCard();
                             return;
                         }
                     }
@@ -1143,6 +1163,7 @@
                         base.castShadow = true;
                         group.add(base);
 
+                        group.userData = { token: p.token, playerId: p.id };
                         tokenMeshes[p.id] = group;
                         worldGroup.add(group);
 
@@ -1151,6 +1172,7 @@
                     });
                 } else {
                     const group = tokenMeshes[p.id];
+                    group.userData = { token: p.token, playerId: p.id };
                     const center = getSquareCenter(p.position);
                     const siblings = byPos[p.position] || [p];
                     const sIdx = siblings.findIndex(s => s.id === p.id);
@@ -1183,16 +1205,17 @@
 
             let stepCount = 0;
             let fromPos = tokenGroup.position.clone();
+            const tokenType = (tokenGroup.userData && tokenGroup.userData.token) ? tokenGroup.userData.token : null;
 
             const hopNext = () => {
                 if (stepCount >= steps) {
                     // Reached destination!
                     if (isCinematic) {
-                        // Hold on destination square for 550ms so player sees where they arrived
+                        // Hold on destination square for 650ms so all players clearly see the landed tile
                         setTimeout(() => {
                             this.setCameraPreset(cameraMode || '2.5d');
                             if (onFinish) onFinish();
-                        }, 550);
+                        }, 650);
                     } else {
                         if (onFinish) onFinish();
                     }
@@ -1205,9 +1228,9 @@
                 const toPos = new THREE.Vector3(nextCenter.x, 0.09, nextCenter.z);
 
                 if (window.MonopolySound) {
-                    if (window.MonopolySound.playTokenMove) {
-                        window.MonopolySound.playTokenMove(player.token);
-                    } else {
+                    if (window.MonopolySound.playTokenMove && tokenType) {
+                        window.MonopolySound.playTokenMove(tokenType);
+                    } else if (window.MonopolySound.playHop) {
                         window.MonopolySound.playHop();
                     }
                 }
@@ -1554,6 +1577,7 @@
         },
 
         showDrawnCard: showDrawnCard,
+        hideDrawnCards: hideDrawnCards,
 
         animate: function() {
             requestAnimationFrame(this.animate.bind(this));

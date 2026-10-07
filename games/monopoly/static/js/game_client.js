@@ -252,6 +252,8 @@
                 if (gameState.last_card && window.MonopolyBoard3D.showDrawnCard) {
                     const lCardImg = gameState.last_card.image || (gameState.last_card.card && (gameState.last_card.card.image || gameState.last_card.card.card_image_filename));
                     window.MonopolyBoard3D.showDrawnCard(gameState.last_card.deck, (gameState.last_card.card && gameState.last_card.card.text) || '', lCardImg);
+                } else if (window.MonopolyBoard3D && window.MonopolyBoard3D.hideDrawnCards) {
+                    window.MonopolyBoard3D.hideDrawnCards();
                 }
             }
 
@@ -298,7 +300,6 @@
                 break;
 
             case 'CARD':
-                if (Sound) Sound.playCard();
                 if (msg.card) {
                     const dDeck = msg.deck || 'Ereignis';
                     const dText = msg.card.text;
@@ -309,7 +310,7 @@
                     }
                     const isMyTurn = (gameState && gameState.current_player && gameState.current_player.id === playerId);
                     if (isMyTurn) {
-                        showCardModal(dDeck, dText, dImg);
+                        showCardModal(dDeck, dText, dImg, true);
                     }
                 }
                 break;
@@ -359,7 +360,6 @@
                         }
                         if (res.action) {
                             if (res.action.type === 'CARD') {
-                                if (Sound) Sound.playCard();
                                 const dDeck = res.action.deck || 'Ereignis';
                                 const dText = (res.action.card && res.action.card.text) ? res.action.card.text : 'Karte';
                                 const dImg = res.action.card ? (res.action.card.image || res.action.card.card_image_filename) : null;
@@ -368,7 +368,7 @@
                                     engine.showDrawnCard(dDeck, dText, dImg);
                                 }
                                 if (isMyTurn) {
-                                    showCardModal(dDeck, dText, dImg);
+                                    showCardModal(dDeck, dText, dImg, true);
                                 }
                             } else if (res.action.type === 'BUY_OR_AUCTION') {
                                 if (isMyTurn && res.action.square) {
@@ -376,9 +376,9 @@
                                 }
                             }
                         }
-                    }, isMyTurn);
+                    }, true);
                 }
-            }, isMyTurn);
+            }, true);
         }
     }
 
@@ -673,7 +673,7 @@
     }
 
     // Show Card Modal (Ereignis- / Gemeinschaftskarte with Authentic ROM Graphic or Illustration)
-    function showCardModal(deckType, text, cardImage) {
+    function showCardModal(deckType, text, cardImage, playSound = false) {
         const titleEl = document.getElementById('card-modal-title');
         const containerEl = document.getElementById('card-modal-container');
         const textEl = document.getElementById('card-modal-text');
@@ -698,7 +698,7 @@
         }
 
         openModal('modal-card');
-        if (Sound) Sound.playCard();
+        if (playSound && Sound) Sound.playCard();
     }
 
     // Show Besitzurkunde (Property Deed Modal with Authentic ROM Card Graphics)
