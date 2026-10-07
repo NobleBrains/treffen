@@ -261,6 +261,40 @@
     box-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
 }
 
+[data-theme="cyber-arcade"] .room-pill {
+    background: #0d1222;
+    border: 1.5px solid rgba(0, 240, 255, 0.4);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.65), 0 0 10px rgba(0, 240, 255, 0.12);
+}
+
+[data-theme="cyber-arcade"] .room-label {
+    color: #94a3b8;
+}
+
+[data-theme="cyber-arcade"] .room-code {
+    background: linear-gradient(135deg, #ffe600 0%, #ffc800 100%);
+    color: #060913;
+    font-weight: 900;
+    border: 1.5px solid #d4c000;
+    box-shadow: 0 0 14px rgba(255, 230, 0, 0.4);
+    text-shadow: none;
+    letter-spacing: 0.16em;
+}
+
+[data-theme="cyber-arcade"] .icon-btn {
+    background: #141b2e;
+    border: 1.5px solid rgba(0, 240, 255, 0.25);
+    color: #f1f5f9;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="cyber-arcade"] .icon-btn:hover {
+    background: #1c2642;
+    border-color: #00f0ff;
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.4);
+    transform: translateY(-1px);
+}
+
 /* --------------------------------------------------------------------------
    3. GLASSMORPHISM / MODERN CLEAN (Apple Dark Glass Style)
    -------------------------------------------------------------------------- */
@@ -318,6 +352,27 @@
     box-shadow: 0 4px 15px rgba(99, 102, 241, 0.35);
 }
 
+[data-theme="glassmorphism"] .room-code {
+    background: rgba(245, 158, 11, 0.25);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25);
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.35);
+}
+
+[data-theme="glassmorphism"] .icon-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #f8fafc;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+}
+
+[data-theme="glassmorphism"] .icon-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
 /* --------------------------------------------------------------------------
    4. COZY LOUNGE / WARM WOOD & AMBER
    -------------------------------------------------------------------------- */
@@ -370,6 +425,26 @@
     border: 1px solid #f59e0b;
     color: #fef3c7;
     box-shadow: 0 4px 14px rgba(217, 119, 6, 0.35);
+}
+
+[data-theme="cozy-lounge"] .room-code {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+    color: #171310;
+    font-weight: 900;
+    border: 1.5px solid #92400e;
+    box-shadow: 0 2px 10px rgba(217, 119, 6, 0.35);
+}
+
+[data-theme="cozy-lounge"] .icon-btn {
+    background: #2a2018;
+    border: 1.5px solid rgba(217, 119, 6, 0.35);
+    color: #fef3c7;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="cozy-lounge"] .icon-btn:hover {
+    background: #382c22;
+    border-color: #d97706;
 }
 
 /* --------------------------------------------------------------------------
@@ -425,6 +500,20 @@
     background: #38bdf8;
     color: #ffffff;
     box-shadow: 6px 6px 0px #facc15;
+}
+
+[data-theme="retro-arcade"] .room-code {
+    background: #ffff00;
+    color: #000000;
+    border: 2px solid #000000;
+    box-shadow: 2px 2px 0px #000000;
+    font-weight: 900;
+}
+
+[data-theme="retro-arcade"] .icon-btn {
+    background: #ffffff;
+    border: 2px solid #1e1b4b;
+    box-shadow: 2px 2px 0px #1e1b4b;
 }
 
 /* --------------------------------------------------------------------------

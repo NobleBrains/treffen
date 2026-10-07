@@ -1055,6 +1055,8 @@ function setupFilters() {
 function setupEventListeners() {
     const copyLinkBtn = document.getElementById("copyLinkBtn");
     if (copyLinkBtn) copyLinkBtn.addEventListener("click", copyShareUrl);
+    const roomCodeTag = document.getElementById("roomCodeTag");
+    if (roomCodeTag) roomCodeTag.addEventListener("click", copyShareUrl);
 
     const qrCodeBtn = document.getElementById("qrCodeBtn");
     if (qrCodeBtn) qrCodeBtn.addEventListener("click", openShareModal);

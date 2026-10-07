@@ -187,6 +187,7 @@ body {
     align-items: center;
     gap: 6px;
     user-select: all;
+    cursor: pointer;
 }
 
 .room-label {
@@ -199,16 +200,25 @@ body {
 }
 
 .room-code {
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    color: var(--ink);
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    color: #0a0e17; /* High contrast dark text against bright yellow badge */
     background: var(--accent-yellow);
-    padding: 3px 8px;
-    border-radius: 6px;
-    border: 1.5px solid var(--ink);
+    padding: 3px 10px;
+    border-radius: 7px;
+    border: 1.5px solid rgba(0, 0, 0, 0.22);
     font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
-    font-size: 1.05rem;
-    box-shadow: 1px 1px 0px var(--ink);
+    font-size: 1.1rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.25;
+}
+
+.room-code-tag:hover .room-code {
+    transform: scale(1.04);
 }
 
 .room-pill-actions {
@@ -225,7 +235,7 @@ body {
     padding: 4px 8px;
     border-radius: 8px;
     box-shadow: 1.5px 1.5px 0px #1e293b;
-    transition: transform 0.1s, box-shadow 0.1s;
+    transition: transform 0.1s, box-shadow 0.1s, background-color 0.15s, border-color 0.15s;
 }
 
 .icon-btn:hover {
