@@ -38,7 +38,7 @@
         buildHouse: 'static/assets/audio/haus_bauen.wav',
         jail: 'static/assets/audio/ins_gefaengnis.wav',
         jailLeave: 'static/assets/audio/gefaengnis_verlassen.wav',
-        card: 'static/assets/audio/karte_ziehen.wav',
+        card: 'static/assets/audio/wischen.wav',
         win: 'static/assets/audio/spiel_gewonnen.wav',
         lose: 'static/assets/audio/spiel_verloren.wav',
         confirm: 'static/assets/audio/klick_bestaetigen.wav',
@@ -47,16 +47,7 @@
         swipe: 'static/assets/audio/wischen.wav'
     };
 
-    const tokenSounds = {
-        dog: 'static/assets/audio/figur_hund_laufen.wav',
-        car: 'static/assets/audio/figur_auto_fahren.wav',
-        ship: 'static/assets/audio/figur_schiff_fahren.wav',
-        boot: 'static/assets/audio/figur_schuh_ziehen.wav',
-        iron: 'static/assets/audio/figur_buegeleisen_ziehen.wav',
-        thimble: 'static/assets/audio/figur_fingerhut_ziehen.wav',
-        wheelbarrow: 'static/assets/audio/figur_schubkarre_ziehen.wav',
-        hat: 'static/assets/audio/figur_zylinder_ziehen.wav'
-    };
+    const tokenSounds = {};
 
     const bgmTracks = [
         'static/assets/audio/music/monopoly_theme_lounge_m1.mp3',
@@ -173,35 +164,34 @@
             }, 600);
         },
 
-        // Token Movement SFX (Specific per Token)
+        // Token Movement SFX - Consistent clean hop sound for all pieces
         playTokenMove: function(tokenType) {
             if (isMuted) return;
-            if (tokenType && tokenSounds[tokenType]) {
-                playAudioFile(tokenSounds[tokenType], 0.75);
-            } else {
-                Sound.playHop();
-            }
+            Sound.playHop();
         },
 
-        // Token step hop sound (synthesized fallback)
+        // Token step hop sound (clean zero-latency synthesized click/tap with file fallback)
         playHop: function() {
             if (isMuted) return;
             const ctx = getAudioContext();
-            if (!ctx) return;
-            try {
-                const now = ctx.currentTime;
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(420, now);
-                osc.frequency.exponentialRampToValueAtTime(180, now + 0.06);
-                gain.gain.setValueAtTime(0.25, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start(now);
-                osc.stop(now + 0.07);
-            } catch(e) {}
+            if (ctx && ctx.state === 'running') {
+                try {
+                    const now = ctx.currentTime;
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(420, now);
+                    osc.frequency.exponentialRampToValueAtTime(180, now + 0.06);
+                    gain.gain.setValueAtTime(0.28, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.07);
+                    return;
+                } catch(e) {}
+            }
+            playAudioFile(soundFiles.select, 0.4);
         },
 
         // Money gain / Passed GO

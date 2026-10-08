@@ -402,27 +402,23 @@ class GameRoom:
 
         elif sq_type == "chance":
             card = self.draw_chance_card(player, roll_sum)
-            active_count = max(1, len([p for p in self.players if not p.is_bankrupt]))
             self.last_card = {
                 "deck": "Ereignis",
                 "card": card,
                 "text": card.get("text", ""),
                 "image": card.get("image") or card.get("card_image_filename", ""),
-                "player": player.name,
-                "turns_remaining": active_count
+                "player": player.name
             }
             return {"type": "CARD", "deck": "Ereignis", "card": card}
 
         elif sq_type == "chest":
             card = self.draw_chest_card(player)
-            active_count = max(1, len([p for p in self.players if not p.is_bankrupt]))
             self.last_card = {
                 "deck": "Gemeinschaft",
                 "card": card,
                 "text": card.get("text", ""),
                 "image": card.get("image") or card.get("card_image_filename", ""),
-                "player": player.name,
-                "turns_remaining": active_count
+                "player": player.name
             }
             return {"type": "CARD", "deck": "Gemeinschaft", "card": card}
 
@@ -836,10 +832,7 @@ class GameRoom:
 
         self.rolled = False
         self.pending_action = None
-        if self.last_card:
-            self.last_card["turns_remaining"] = self.last_card.get("turns_remaining", 1) - 1
-            if self.last_card["turns_remaining"] <= 0:
-                self.last_card = None
+        self.last_card = None
 
         self.current_player_idx = (self.current_player_idx + 1) % len(self.players)
         # Skip bankrupted

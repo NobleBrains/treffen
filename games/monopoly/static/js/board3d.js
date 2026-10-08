@@ -302,13 +302,19 @@
         const ereignisBackTex = texLoader.load('static/assets/chance_chest/deck_ereignis_back.png');
         ereignisBackTex.colorSpace = THREE.SRGBColorSpace || THREE.sRGBEncoding;
 
-        const deckW = 1.58;
+        const deckW = 1.05;
         const deckH = 0.12;
-        const deckD = 1.05;
+        const deckD = 1.58;
         const deckGeo = new THREE.BoxGeometry(deckW, deckH, deckD);
 
         const edgeMat = new THREE.MeshStandardMaterial({ map: stackEdgeTex, roughness: 0.85 });
         const bottomMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+
+        // Align landscape back textures along the 1.58 long side of the deck
+        gemBackTex.center.set(0.5, 0.5);
+        gemBackTex.rotation = Math.PI / 2;
+        ereignisBackTex.center.set(0.5, 0.5);
+        ereignisBackTex.rotation = Math.PI / 2;
 
         // 1. Gemeinschaft (Community Chest) Deck Stack - Centered precisely in dashed GEMEINSCHAFTSFELD area (Top-Left)
         const gemTopMat = new THREE.MeshStandardMaterial({ map: gemBackTex, roughness: 0.35, metalness: 0.05 });
@@ -320,21 +326,21 @@
         gemDeck.userData = { type: 'board_deck', deck: 'Gemeinschaft', baseY: 0.09 + deckH / 2 };
         boardDecksGroup.add(gemDeck);
 
-        // Gemeinschaft Drawn Card Plane - Sits face-up on top of the deck stack (Landscape: 1.55 x 1.02 matching 456x300)
-        const drawnGeo = new THREE.PlaneGeometry(1.55, 1.02);
+        // Gemeinschaft Drawn Card Plane - Sits face-up on top of the deck stack (Landscape: 1.52 x 1.00 matching 456x300)
+        const drawnGeo = new THREE.PlaneGeometry(1.52, 1.00);
         const gemDrawnMat = new THREE.MeshStandardMaterial({
             color: 0xffffff,
             roughness: 0.32,
             side: THREE.DoubleSide
         });
         const gemDrawnMesh = new THREE.Mesh(drawnGeo, gemDrawnMat);
-        gemDrawnMesh.position.set(-2.21, 0.09 + deckH + 0.005, -2.21);
+        gemDrawnMesh.position.set(-2.21, 0.09 + deckH + 0.003, -2.21);
         gemDrawnMesh.rotation.x = -Math.PI / 2;
-        gemDrawnMesh.rotation.z = -Math.PI / 4;
+        gemDrawnMesh.rotation.z = Math.PI / 4;
         gemDrawnMesh.castShadow = true;
         gemDrawnMesh.receiveShadow = true;
         gemDrawnMesh.visible = false;
-        gemDrawnMesh.userData = { type: 'drawn_card', deck: 'Gemeinschaft', baseY: 0.09 + deckH + 0.005 };
+        gemDrawnMesh.userData = { type: 'drawn_card', deck: 'Gemeinschaft', baseY: 0.09 + deckH + 0.003 };
         boardDecksGroup.add(gemDrawnMesh);
         drawnCardMeshes['Gemeinschaft'] = gemDrawnMesh;
 
@@ -348,20 +354,20 @@
         erDeck.userData = { type: 'board_deck', deck: 'Ereignis', baseY: 0.09 + deckH / 2 };
         boardDecksGroup.add(erDeck);
 
-        // Ereignis Drawn Card Plane - Sits face-up on top of the deck stack (Landscape: 1.55 x 1.02 matching 456x300)
+        // Ereignis Drawn Card Plane - Sits face-up on top of the deck stack (Landscape: 1.52 x 1.00 matching 456x300)
         const erDrawnMat = new THREE.MeshStandardMaterial({
             color: 0xffffff,
             roughness: 0.32,
             side: THREE.DoubleSide
         });
         const erDrawnMesh = new THREE.Mesh(drawnGeo.clone(), erDrawnMat);
-        erDrawnMesh.position.set(2.205, 0.09 + deckH + 0.005, 2.205);
+        erDrawnMesh.position.set(2.205, 0.09 + deckH + 0.003, 2.205);
         erDrawnMesh.rotation.x = -Math.PI / 2;
-        erDrawnMesh.rotation.z = -Math.PI / 4;
+        erDrawnMesh.rotation.z = Math.PI / 4;
         erDrawnMesh.castShadow = true;
         erDrawnMesh.receiveShadow = true;
         erDrawnMesh.visible = false;
-        erDrawnMesh.userData = { type: 'drawn_card', deck: 'Ereignis', baseY: 0.09 + deckH + 0.005 };
+        erDrawnMesh.userData = { type: 'drawn_card', deck: 'Ereignis', baseY: 0.09 + deckH + 0.003 };
         boardDecksGroup.add(erDrawnMesh);
         drawnCardMeshes['Ereignis'] = erDrawnMesh;
 
@@ -371,8 +377,8 @@
     // High-Resolution 3D Drawn Card Canvas Texture Generator
     function createDrawnCardCanvasTexture(deckType, text) {
         const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 768;
+        canvas.width = 768;
+        canvas.height = 512;
         const ctx = canvas.getContext('2d');
 
         const isChest = (deckType || '').toLowerCase().includes('gemein');
@@ -381,17 +387,17 @@
 
         // Background
         ctx.fillStyle = '#fefcf6';
-        ctx.fillRect(0, 0, 512, 768);
+        ctx.fillRect(0, 0, 768, 512);
 
         // Outer border
         ctx.strokeStyle = headerColor;
         ctx.lineWidth = 14;
         if (ctx.roundRect) {
             ctx.beginPath();
-            ctx.roundRect(16, 16, 480, 736, 24);
+            ctx.roundRect(16, 16, 736, 480, 20);
             ctx.stroke();
         } else {
-            ctx.strokeRect(16, 16, 480, 736);
+            ctx.strokeRect(16, 16, 736, 480);
         }
 
         // Inner border
@@ -399,7 +405,7 @@
         ctx.lineWidth = 3;
         if (ctx.roundRect) {
             ctx.beginPath();
-            ctx.roundRect(28, 28, 456, 712, 16);
+            ctx.roundRect(26, 26, 716, 460, 14);
             ctx.stroke();
         }
 
@@ -407,39 +413,39 @@
         ctx.fillStyle = headerColor;
         if (ctx.roundRect) {
             ctx.beginPath();
-            ctx.roundRect(38, 42, 436, 76, 14);
+            ctx.roundRect(40, 36, 688, 64, 12);
             ctx.fill();
         } else {
-            ctx.fillRect(38, 42, 436, 76);
+            ctx.fillRect(40, 36, 688, 64);
         }
 
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 28px sans-serif';
+        ctx.font = 'bold 30px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(headerTitle, 256, 80);
+        ctx.fillText(headerTitle, 384, 68);
 
         // Card Text
         ctx.fillStyle = '#0f172a';
-        ctx.font = 'bold 27px sans-serif';
+        ctx.font = 'bold 26px sans-serif';
         ctx.textAlign = 'center';
-        wrapCanvasText(ctx, text, 256, 440, 420, 38);
+        wrapCanvasText(ctx, text, 480, 220, 440, 34);
 
         // Click hint
         ctx.fillStyle = '#64748b';
-        ctx.font = 'bold 20px sans-serif';
-        ctx.fillText('🔍 Klicken für Nahansicht', 256, 700);
+        ctx.font = 'bold 18px sans-serif';
+        ctx.fillText('🔍 Klicken für Großansicht', 384, 465);
 
         const tex = new THREE.CanvasTexture(canvas);
         tex.colorSpace = THREE.SRGBColorSpace || THREE.sRGBEncoding;
 
-        // Illustration
+        // Illustration on the left
         const getIllust = window.getCardIllustration || ((t) => 'static/assets/chance_chest/illustration_monopoly_mann.png');
         const imgUrl = getIllust(text);
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
-            ctx.drawImage(img, 156, 145, 200, 200);
+            ctx.drawImage(img, 56, 150, 190, 190);
             tex.needsUpdate = true;
         };
         img.src = imgUrl;
@@ -489,8 +495,8 @@
                 // Dynamically fit geometry to texture aspect ratio
                 if (tex.image && tex.image.width && tex.image.height) {
                     const isLandscape = tex.image.width >= tex.image.height;
-                    const w = isLandscape ? 1.55 : 1.02;
-                    const h = isLandscape ? 1.02 : 1.55;
+                    const w = isLandscape ? 1.52 : 1.00;
+                    const h = isLandscape ? 1.00 : 1.52;
                     if (mesh.geometry) mesh.geometry.dispose();
                     mesh.geometry = new THREE.PlaneGeometry(w, h);
                 }
@@ -500,13 +506,13 @@
             mesh.material.map = tex;
             mesh.material.needsUpdate = true;
             if (mesh.geometry) mesh.geometry.dispose();
-            mesh.geometry = new THREE.PlaneGeometry(1.55, 1.02);
+            mesh.geometry = new THREE.PlaneGeometry(1.52, 1.00);
         }
 
         mesh.visible = true;
         mesh.userData.text = text;
         mesh.userData.cardImage = cardImage;
-        mesh.rotation.z = -Math.PI / 4 + 0.03;
+        mesh.rotation.z = Math.PI / 4 + 0.02;
 
         // Subtle pop-in animation
         const endY = mesh.userData.baseY || (0.09 + 0.12 + 0.005);
@@ -1227,12 +1233,8 @@
                 const nextCenter = getSquareCenter(current);
                 const toPos = new THREE.Vector3(nextCenter.x, 0.09, nextCenter.z);
 
-                if (window.MonopolySound) {
-                    if (window.MonopolySound.playTokenMove && tokenType) {
-                        window.MonopolySound.playTokenMove(tokenType);
-                    } else if (window.MonopolySound.playHop) {
-                        window.MonopolySound.playHop();
-                    }
+                if (window.MonopolySound && window.MonopolySound.playHop) {
+                    window.MonopolySound.playHop();
                 }
 
                 const startTime = performance.now();

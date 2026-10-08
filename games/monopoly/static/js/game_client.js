@@ -17,6 +17,7 @@
     let gameState = null;
     let squaresData = [];
     let viewedPlayerId = null;
+    let isTokenInTransit = false;
 
     // Sound and Board instances
     const Sound = window.MonopolySound;
@@ -249,11 +250,13 @@
                 window.MonopolyBoard3D.syncPlayers(gameState.players);
                 window.MonopolyBoard3D.syncBuildings(gameState.board_state);
                 window.MonopolyBoard3D.syncTableDeeds(gameState.board_state, gameState.players, playerId);
-                if (gameState.last_card && window.MonopolyBoard3D.showDrawnCard) {
-                    const lCardImg = gameState.last_card.image || (gameState.last_card.card && (gameState.last_card.card.image || gameState.last_card.card.card_image_filename));
-                    window.MonopolyBoard3D.showDrawnCard(gameState.last_card.deck, (gameState.last_card.card && gameState.last_card.card.text) || '', lCardImg);
-                } else if (window.MonopolyBoard3D && window.MonopolyBoard3D.hideDrawnCards) {
-                    window.MonopolyBoard3D.hideDrawnCards();
+                if (!isTokenInTransit) {
+                    if (gameState.last_card && window.MonopolyBoard3D.showDrawnCard) {
+                        const lCardImg = gameState.last_card.image || (gameState.last_card.card && (gameState.last_card.card.image || gameState.last_card.card.card_image_filename));
+                        window.MonopolyBoard3D.showDrawnCard(gameState.last_card.deck, (gameState.last_card.card && gameState.last_card.card.text) || '', lCardImg);
+                    } else if (window.MonopolyBoard3D && window.MonopolyBoard3D.hideDrawnCards) {
+                        window.MonopolyBoard3D.hideDrawnCards();
+                    }
                 }
             }
 
@@ -279,6 +282,12 @@
                 handleDiceRollEvent(msg.result);
                 break;
 
+            case 'TURN_ENDED':
+                if (window.MonopolyBoard3D && window.MonopolyBoard3D.hideDrawnCards) {
+                    window.MonopolyBoard3D.hideDrawnCards();
+                }
+                break;
+
             case 'PROPERTY_BOUGHT':
                 if (Sound) Sound.playMoney();
                 break;
@@ -300,7 +309,7 @@
                 break;
 
             case 'CARD':
-                if (msg.card) {
+                if (!isTokenInTransit && msg.card) {
                     const dDeck = msg.deck || 'Ereignis';
                     const dText = msg.card.text;
                     const dImg = msg.card.image || msg.card.card_image_filename;
@@ -335,7 +344,7 @@
         }
 
         // Check if pending action is a drawn card
-        if (gameState && gameState.pending_action && gameState.pending_action.type === 'CARD') {
+        if (!isTokenInTransit && gameState && gameState.pending_action && gameState.pending_action.type === 'CARD') {
             const cAct = gameState.pending_action;
             const cImg = cAct.card ? (cAct.card.image || cAct.card.card_image_filename) : null;
             const engine = window.MonopolyBoard3D || Board3D;
@@ -350,13 +359,15 @@
         if (!res || !res.dice) return;
         const [d1, d2] = res.dice;
         const isMyTurn = (res.player && res.player.id === playerId);
+        isTokenInTransit = true;
 
         if (Board3D) {
             Board3D.rollDice(d1, d2, () => {
                 if (res.old_pos !== undefined && res.new_pos !== undefined) {
                     Board3D.animateMoveToken(res.player.id, res.old_pos, res.new_pos, () => {
+                        isTokenInTransit = false;
                         if (Sound && res.passed_go) {
-                            Sound.playMoney();
+                            Sound.playPassGo ? Sound.playPassGo() : Sound.playMoney();
                         }
                         if (res.action) {
                             if (res.action.type === 'CARD') {
@@ -375,10 +386,18 @@
                                     showDeedModal(res.action.square.index);
                                 }
                             }
+                        } else if (!gameState || !gameState.last_card) {
+                            if (window.MonopolyBoard3D && window.MonopolyBoard3D.hideDrawnCards) {
+                                window.MonopolyBoard3D.hideDrawnCards();
+                            }
                         }
                     }, true);
+                } else {
+                    isTokenInTransit = false;
                 }
             }, true);
+        } else {
+            isTokenInTransit = false;
         }
     }
 
