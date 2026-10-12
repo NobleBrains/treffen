@@ -264,9 +264,10 @@ function showWelcomeOverlay(opts = {}) {
     if (!chosenAvatar) {
         let roster = getRosterFromStorage();
         const activeNames = Object.values(roster).map(p => p.name);
-        let chosenPreset = AVATAR_POOL.find(p => !activeNames.includes(p.name)) || AVATAR_POOL[0];
+        const availablePresets = AVATAR_POOL.filter(p => !activeNames.includes(p.name));
+        const poolToChooseFrom = availablePresets.length > 0 ? availablePresets : AVATAR_POOL;
+        const chosenPreset = poolToChooseFrom[Math.floor(Math.random() * poolToChooseFrom.length)];
         chosenAvatar = chosenPreset.avatar;
-        if (!chosenName) chosenName = chosenPreset.name;
     }
 
     tempWelcomeAvatar = chosenAvatar || "🐶";
@@ -670,7 +671,7 @@ function renderPlayerRoster() {
         if (isHostMe && !isMe) {
             hostBtnHtml = `
                 <button class="transfer-host-btn" type="button" title="${p.name} zum Party-Leader machen">
-                    👑 Leader übergeben
+                    👑
                 </button>
             `;
         }
