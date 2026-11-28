@@ -1,6 +1,7 @@
 import http from 'http';
 import crypto from 'crypto';
 import { WebSocketServer, WebSocket } from 'ws';
+import { checkForUpdate, setActiveChannel, triggerWebhookUpdate, verifyHubHostTicket } from './updater.js';
 
 const PORT = parseInt(process.env.PORT || '3001', 10);
 
@@ -472,11 +473,90 @@ function serveAvatar(req, res, pathname) {
     return true;
 }
 
+function readJsonBody(req, maxBytes = 16384) {
+    return new Promise((resolve, reject) => {
+        let size = 0;
+        const chunks = [];
+        req.on('data', chunk => {
+            size += chunk.length;
+            if (size > maxBytes) {
+                reject(new Error('Request body too large'));
+                req.destroy();
+                return;
+            }
+            chunks.push(chunk);
+        });
+        req.on('end', () => {
+            const raw = Buffer.concat(chunks).toString('utf8').trim();
+            if (!raw) return resolve({});
+            try { resolve(JSON.parse(raw)); } catch { reject(new Error('Invalid JSON')); }
+        });
+        req.on('error', reject);
+    });
+}
+
+function sendJson(res, status, data) {
+    res.writeHead(status, {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+    });
+    res.end(JSON.stringify(data));
+}
+
+function extractBearerToken(req) {
+    const auth = req.headers['authorization'] || '';
+    if (auth.startsWith('Bearer ')) return auth.slice(7).trim();
+    return '';
+}
+
 // HTTP Server for Healthchecks & Open Rooms Listing
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
     try {
         const reqUrl = new URL(req.url, 'http://localhost');
+        if (req.method === 'OPTIONS') {
+            res.writeHead(204, {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+            });
+            res.end();
+            return;
+        }
         if (serveAvatar(req, res, reqUrl.pathname)) return;
+        if (reqUrl.pathname === '/update/status' || reqUrl.pathname === '/party-ws/update/status') {
+            const channelId = reqUrl.searchParams.get('channel') || '';
+            const force = reqUrl.searchParams.get('force') === '1';
+            const data = await checkForUpdate({ channelId, force });
+            sendJson(res, 200, data);
+            return;
+        }
+        if (req.method === 'POST' && (reqUrl.pathname === '/update/channel' || reqUrl.pathname === '/party-ws/update/channel')) {
+            const body = await readJsonBody(req);
+            const auth = verifyHubHostTicket(extractBearerToken(req) || body.ticket, TICKET_SECRET);
+            if (!auth.ok) {
+                sendJson(res, 403, { error: auth.error });
+                return;
+            }
+            const resChannel = setActiveChannel(body.channel);
+            if (resChannel.error) {
+                sendJson(res, 400, { error: resChannel.error });
+                return;
+            }
+            const status = await checkForUpdate({ channelId: resChannel.channel.id, force: true });
+            sendJson(res, 200, status);
+            return;
+        }
+        if (req.method === 'POST' && (reqUrl.pathname === '/update/apply' || reqUrl.pathname === '/party-ws/update/apply')) {
+            const body = await readJsonBody(req);
+            const auth = verifyHubHostTicket(extractBearerToken(req) || body.ticket, TICKET_SECRET);
+            if (!auth.ok) {
+                sendJson(res, 403, { error: auth.error });
+                return;
+            }
+            const out = await triggerWebhookUpdate(body.channel || '');
+            sendJson(res, out.status, out.body);
+            return;
+        }
         if (reqUrl.pathname === '/rooms' || reqUrl.pathname === '/party-ws/rooms' || reqUrl.searchParams.get('rooms') === '1') {
             const now = Date.now();
             const activeRooms = [];
@@ -539,6 +619,11 @@ wss.on('connection', (ws, req) => {
             const data = JSON.parse(message.toString());
             if (!data || !data.type) return;
             const senderId = room.socketToPlayerId.get(ws);
+
+            // Jede echte Benutzer-Interaktion (außer automatischem HEARTBEAT) setzt den AFK-Timer zurück
+            if (data.type !== 'HEARTBEAT' && data.type !== 'USER_ACTIVITY' && senderId && room.players.size <= 1 && !room.activeGame) {
+                room.updateExpiryTimer(true);
+            }
 
             switch (data.type) {
                 case 'JOIN':
@@ -669,6 +754,21 @@ wss.on('connection', (ws, req) => {
                 case 'EXTEND_ROOM_TTL': {
                     room.updateExpiryTimer(true);
                     room.broadcastRoster();
+                    break;
+                }
+
+                case 'USER_ACTIVITY': {
+                    if (senderId && room.players.size <= 1 && !room.activeGame) {
+                        room.updateExpiryTimer(true);
+                        if (ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({
+                                type: 'ROOM_TTL_SYNC',
+                                expiresAt: room.expiresAt,
+                                remainingMs: room.expiresAt ? Math.max(0, room.expiresAt - Date.now()) : null,
+                                ttlTotalMs: SOLO_ROOM_TTL_MS
+                            }));
+                        }
+                    }
                     break;
                 }
 
